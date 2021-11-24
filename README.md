@@ -1,6 +1,6 @@
 # DiscordMusicApp
 ## Setup
-The setup here is verry easy, you will be using your own computer to serve the application while running. 
+The setup here is verry easy, you will be using your own computer to serve the application when you intend to use the service. 
 The first step is to clone the repository, then navigate to the directory that you had preveously cloned the app.
 
 then simply install you local deps by running `npm install` 
