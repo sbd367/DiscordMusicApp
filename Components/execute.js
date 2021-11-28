@@ -13,6 +13,12 @@ const buildList = url => {
     ind = params.filter(param => !!param.includes('index='))[0] ? param.includes('index=')[0].replace(/.*\=/g, '') : null;
     return {listId: listId, index: ind}
 }
+
+//only display to the user
+const noNeedToShowChat = content => {
+    return {content: content, ephemeral: true}
+}
+
 //function used to build a list of current songs
 const displayList = serverQueue =>{
     //shows the list of songs in the queue
@@ -50,22 +56,37 @@ exports.runAction = async (interaction, serverQueue, queue) => {
     //playlist into the queue.
     const playlist = arg.includes('list=') ? buildList(arg) : null,
     searchArr = arg.split(' ');
-
     //rub search and play song
-    if(searchArr.length){
+    if(searchArr.length > 1){
         const searchString = searchArr.join(' '),
-            d = youtubeRequest.videoRequest(searchString);
+            d = youtubeRequest.videoRequest(searchString[0]);
         d.then( songData => {
             return exports.addPlaySong(songData, null, serverQueue, voiceChannel, queue, interaction)
         });
     //handle playlist logiic
     } else if(playlist) {
         //todo: ask for user input on adding playlist
-        const attachment = 'So I dont get thrown in youtube jail...\nI\'ve added (up to) 10 of those songs in that playlist to the queue';
-        msg.reply(noNeedToShowChat(attachment))
-        const info = youtubeRequest.listRequest(playlist);
-        info.then(res => {
-           return exports.addPlaySong(arg, res, serverQueue, voiceChannel, queue, interaction);
+        const attachment = 'So I dont get thrown in youtube jail...\n'+
+        'If you\'d like I can add (up to) 10 of those songs in that playlist to the queue\n'+
+        'just respond "yes" to add the items... otherwise go kick sand.';
+        const filter = (m) => m.author.id === interaction.user.id;
+        return interaction.reply({content: attachment, ephemeral: true, fetchReply: true}).then(() => {
+            interaction.channel.awaitMessages({ filter, max: 1, time: 30000, errors: ['time'] }).then( collector => {
+                let content = collector.entries().next().value[1].content;
+                if(content === 'y' || content === 'yes'){
+                    const info = youtubeRequest.listRequest(playlist);
+                    info.then(res => {
+                        console.log('did the right thing')
+                       return exports.addPlaySong(arg, res, serverQueue, voiceChannel, queue, interaction);
+                    });
+                } else {
+                    return exports.addPlaySong(arg, null, serverQueue, voiceChannel, queue, interaction);
+                }
+            }).catch( err => {
+                if(err){
+                    console.warn(err)
+                }
+            });
         });
     } else {
         return exports.addPlaySong(arg, null, serverQueue, voiceChannel, queue, interaction);
@@ -73,7 +94,8 @@ exports.runAction = async (interaction, serverQueue, queue) => {
 };
 exports.addPlaySong = async (startLink, songs, serverQueue, voiceChannel, queue, interaction ) => {
     //wait on the song results we get back from ytdl
-    const songInfo = await ytdl.getInfo(startLink.url);
+    console.log('startlink', startLink)
+    const songInfo = await ytdl.getInfo(startLink);
     const song = {
         title: songInfo.videoDetails.title,
         url: songInfo.videoDetails.video_url,
@@ -99,6 +121,8 @@ exports.addPlaySong = async (startLink, songs, serverQueue, voiceChannel, queue,
         if(songs){
             queueContruct.songs = queueContruct.songs.concat(songs);
         }
+
+        console.log('songs', queueContruct.songs)
         
         //try to connect to the voice server and then stream the song
         try {
@@ -125,8 +149,7 @@ exports.addPlaySong = async (startLink, songs, serverQueue, voiceChannel, queue,
 }
 exports.stop = async (interaction, serverQueue) => {
     //Precheck
-    const signalDestroyed = serverQueue.connection._state.status === 'destroyed';
-    if (!interaction.member.voice.channel || !serverQueue || signalDestroyed){
+    if (!interaction.member.voice.channel || !serverQueue || serverQueue.connection._state.status === 'destroyed'){
         await interaction.reply(noNeedToShowChat('Can not complete your request.\nPlease ensure you are...\n1. In a voice channel\n2. There is currently music being played to your voice channel'));
     };
     //small function to dissconect and send message
@@ -152,15 +175,13 @@ exports.list = async (interaction, serverQueue) => {
 }
 exports.skip = async (interaction, serverQueue) => {
     //pre-checks
-    const signalDestroyed = serverQueue.connection._state.status === 'destroyed',
-        noNoConditionals = !serverQueue || 
+    console.log(serverQueue)
+        const noNoConditionals = !serverQueue || 
             serverQueue.songs === [] || 
-            !interaction.member.voice.channel || 
-            signalDestroyed;
+            !interaction.member.voice.channel
 
     if (noNoConditionals){
-        msg+='Could not skip song... please ensure that:\n1. there are songs in the queue\n2. You are currently in a voice chat';
-        return await interaction.reply(noNeedToShowChat(msg));
+        return await interaction.reply(noNeedToShowChat('Could not skip song... please ensure that:\n1. there are songs in the queue\n2. You are currently in a voice chat'));
     }
     //if its not on the last song... 
     //send message and change stream to the next song in the queue.

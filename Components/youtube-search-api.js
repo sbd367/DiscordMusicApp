@@ -46,11 +46,7 @@ const videoRequest = async searchStr => {
     const videoId = await axios.request(reqParams).then( resp => {
         let songData = resp.data.items[0],
             songId = songData.id.videoId;
-        const obj = {
-            title: songData.snippet.title,
-            url: convert_id_to_url(songId)
-        }
-        return obj;
+        return convert_id_to_url(songId)
     }).catch(err => {
         console.warn('ERROR', err);
     });
