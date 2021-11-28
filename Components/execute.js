@@ -50,13 +50,15 @@ exports.runAction = async (interaction, serverQueue, queue) => {
     //playlist into the queue.
     const playlist = arg.includes('list=') ? buildList(arg) : null,
     searchArr = arg.split(' ');
-    // TODO: refactor YT api module
+
+    //rub search and play song
     if(searchArr.length){
         const searchString = searchArr.join(' '),
             d = youtubeRequest.videoRequest(searchString);
         d.then( songData => {
             return exports.addPlaySong(songData, null, serverQueue, voiceChannel, queue, interaction)
         });
+    //handle playlist logiic
     } else if(playlist) {
         //todo: ask for user input on adding playlist
         const attachment = 'So I dont get thrown in youtube jail...\nI\'ve added (up to) 10 of those songs in that playlist to the queue';
@@ -71,7 +73,6 @@ exports.runAction = async (interaction, serverQueue, queue) => {
 };
 exports.addPlaySong = async (startLink, songs, serverQueue, voiceChannel, queue, interaction ) => {
     //wait on the song results we get back from ytdl
-    console.log('start link', startLink)
     const songInfo = await ytdl.getInfo(startLink.url);
     const song = {
         title: songInfo.videoDetails.title,
@@ -111,7 +112,7 @@ exports.addPlaySong = async (startLink, songs, serverQueue, voiceChannel, queue,
             return await interaction.reply(`Currently playing: ${queueContruct.songs[0].title}`)
         } catch (err) {
             // Printing the error message if the bot fails to join the voicechat
-            console.log(err);
+            console.warn('ERROR:', err);
             queue.delete(interaction.guild.id);
             return await interaction.reply(err);
         }
