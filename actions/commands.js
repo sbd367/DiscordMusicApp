@@ -1,6 +1,5 @@
 const {Constants} = require('discord.js');
-exports.commands  = async commands => {
-    return await commands.create?.(
+exports.commands  = [
     {
         name: 'play',
         description: 'Use this command to play YouTube audio via search or link.',
@@ -13,15 +12,15 @@ exports.commands  = async commands => {
         }]
     },
     {
-        name: 'stop',
-        description: 'Disconnects the player.',
+        name: 'skip',
+        description: 'Use this command to skip itmes in the playlist.'
     },
     {
-        name: 'skip',
-        description: 'Skips the current song in the queue.'
+        name: 'stop',
+        description: 'Use this command to stop itmes in the playlist.'
     },
     {
         name: 'list',
-        description: 'Shows the channel the queue list.'
-    });
-}
+        description: 'Use this command to list itmes in the playlist.'
+    }
+]

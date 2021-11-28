@@ -7,6 +7,7 @@ const {Client, Intents} = require('discord.js'),
       queue = new Map(),
       client = new Client({intents: [
         Intents.FLAGS.GUILDS, 
+        Intents.FLAGS.GUILD_MEMBERS,
         Intents.FLAGS.GUILD_MESSAGE_REACTIONS, 
         Intents.FLAGS.GUILD_MESSAGES, 
         Intents.FLAGS.GUILD_VOICE_STATES
@@ -20,8 +21,11 @@ client.once('ready', () => {
     console.log('ready state')
     const gId = process.env.GUILD_ID,
         guild = client.guilds.cache.get(gId);
-    let commands = guild ? guild.commands : client?.commands
-    cmds.commands(commands);
+    
+    let commands = guild ? guild.commands : client?.commands;
+    cmds.commands.forEach(command => {
+        commands.create(command);
+    });
 });
 client.once('reconnecting', () => {
     console.log('Reconnecting!');
@@ -31,13 +35,17 @@ client.once('disconnect', () => {
 });
 
 client.on('interactionCreate', async (interaction) => {
-    console.log('interaction')
+    //++++++BAN Tyche+++++
+    if(interaction.user.id === process.env.BANNED_TYCHE){
+        const randomNoun = nouns[Math.floor(Math.random() * (0 + nouns.length) + 0)]
+        return await interaction.reply(`get out of here you ${randomNoun}`)
+    }
     if(!interaction.isCommand()) return;
 
     let serverQueue = queue.get(interaction.guild.id), //Adds the current guild state to our map.
         checkFor = action => commandName.includes(action), //sinple method to serch for content actions.
         msg ='', //Build string
-        {commandName} = interaction; //pull both the commmandName and options values from the interaction.
+        {commandName} = interaction; //pull both the commmandName from the interaction.
 
 
     //handle actions for each command - reply handled in module by default 

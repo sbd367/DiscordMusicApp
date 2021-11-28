@@ -1,6 +1,8 @@
 require('dotenv').config();
 const axios = require('axios');
 
+const convert_id_to_url = id => `https://www.youtube.com/watch?v=${id}`;
+
 const listRequest = async playlistInfo => {
     const reqPar = {
         method: 'GET',
@@ -21,7 +23,7 @@ const listRequest = async playlistInfo => {
         const videoId = arrItem.contentDetails.videoId
         return {
             title: `playlist song #${ind}`,
-            url: `https://www.youtube.com/watch?v=${videoId}`
+            url: convert_id_to_url(videoId)
         }
     }); 
 
@@ -38,18 +40,23 @@ const videoRequest = async searchStr => {
             part: 'id, snippet',
             maxResults: '1',
             type: 'video',
-            q: searchStr.join(' ')
+            q: searchStr
         }
     }
     const videoId = await axios.request(reqParams).then( resp => {
-        let songData = resp.items[0];
+        console.log('resp', resp.data.items[0])
+        let songData = resp.data.items[0],
+            songId = songData.id.videoId;
         const obj = {
             title: songData.snippet.title,
-            url: songData.id.videoId
+            url: convert_id_to_url(songId)
         }
         return obj;
+    }).catch(err => {
+        console.warn('ERROR', err);
     });
-    
+
+    console.log(videoId)
     return videoId;
 }
 

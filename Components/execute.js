@@ -31,20 +31,14 @@ const displayList = serverQueue =>{
 //large container for controlling state (waits on info for ytdl)
 exports.runAction = async (interaction, serverQueue, queue) => {
     //capture argument
-    const arg = interaction.options.getString('link'),
+    const arg = interaction.options.getString('search') ? interaction.options.getString('search') : '',
      voiceChannel = interaction.member.voice.channel;
 
-    if (!voiceChannel) {
-      return await interaction.reply(
-        "You need to be in a voice channel to play music!"
-      );
+     if (!voiceChannel) {
+        return await interaction.reply(
+            "You need to be in a voice channel to play music!"
+        );
     }
-
-    // TODO: add collector to handle user resp
-    if(!arg.includes('https://')) {
-        return await interaction.reply('You have to give me a youtube link')
-    }
-
     //ensure permissions
     const permissions = voiceChannel.permissionsFor(interaction.client.user);
     if (!permissions.has("CONNECT") || !permissions.has("SPEAK")) {
@@ -52,33 +46,33 @@ exports.runAction = async (interaction, serverQueue, queue) => {
         "I need the permissions to join and speak in your voice channel!"
       );
     }
-
     //if the link sent over is part of a playlist it will add the first 10 songs from that 
     //playlist into the queue.
     const playlist = arg.includes('list=') ? buildList(arg) : null,
-        searchArr = arg.split(' ');
+    searchArr = arg.split(' ');
     // TODO: refactor YT api module
     if(searchArr.length){
-        console.log('is a search', searchArr);
-        //TODO: add search request to youtube API
-        const getVideo = youtubeRequest.videoRequest(searchArr.join(' '));
-        getVideo().then( songData => {
-            exports.addPlaySong()
-        })
-        
+        const searchString = searchArr.join(' '),
+            d = youtubeRequest.videoRequest(searchString);
+        d.then( songData => {
+            return exports.addPlaySong(songData, null, serverQueue, voiceChannel, queue, interaction)
+        });
     } else if(playlist) {
+        //todo: ask for user input on adding playlist
         const attachment = 'So I dont get thrown in youtube jail...\nI\'ve added (up to) 10 of those songs in that playlist to the queue';
+        msg.reply(noNeedToShowChat(attachment))
         const info = youtubeRequest.listRequest(playlist);
         info.then(res => {
-            exports.addPlaySong(arg, res);
+           return exports.addPlaySong(arg, res, serverQueue, voiceChannel, queue, interaction);
         });
     } else {
-        exports.addPlaySong(arg, null);
+        return exports.addPlaySong(arg, null, serverQueue, voiceChannel, queue, interaction);
     }
 };
-exports.addPlaySong = async (startLink, songs) => {
+exports.addPlaySong = async (startLink, songs, serverQueue, voiceChannel, queue, interaction ) => {
     //wait on the song results we get back from ytdl
-    const songInfo = await ytdl.getInfo(startLink);
+    console.log('start link', startLink)
+    const songInfo = await ytdl.getInfo(startLink.url);
     const song = {
         title: songInfo.videoDetails.title,
         url: songInfo.videoDetails.video_url,
@@ -89,7 +83,7 @@ exports.addPlaySong = async (startLink, songs) => {
     if (!serverQueue || serverQueue.songs.length === 0) {
         //new stuff for state mangmt...
         const queueContruct = {
-            textChannel: interaction.channel,
+            textChannel: serverQueue ? serverQueue.textChannel : null,
             voiceChannel: voiceChannel,
             connection: null,
             songs: [],
@@ -121,10 +115,10 @@ exports.addPlaySong = async (startLink, songs) => {
             queue.delete(interaction.guild.id);
             return await interaction.reply(err);
         }
-    }else {
+    } else {
         //add new songs to queue
-        if(songs) queueContruct.songs = queueContruct.songs.concat(songs);
-        serverQueue.songs.unshift(song);
+        if(songs) queueContruct.songs = queueContruct.songs.push(songs);
+        serverQueue.songs.push(song);
         return await interaction.reply(`${song.title} has been added to the queue!`);
     }
 }
@@ -151,10 +145,9 @@ exports.stop = async (interaction, serverQueue) => {
 };
 exports.list = async (interaction, serverQueue) => {
     if(!serverQueue || serverQueue.songs == []){
-        msg+='There are none';
-        return await interaction.reply(noNeedToShowChat(msg));
+        return interaction.reply(noNeedToShowChat('There are none'));
     }
-    return await interaction.reply(`Here are the remaing track's in the list:\n${displayList(serverQueue)}`)
+    return interaction.reply(`Here are the remaing track's in the list:\n${displayList(serverQueue)}`)
 }
 exports.skip = async (interaction, serverQueue) => {
     //pre-checks
@@ -175,6 +168,6 @@ exports.skip = async (interaction, serverQueue) => {
         stream.playStream(serverQueue.songs[0].url, serverQueue.connection, serverQueue);
         return await interaction.reply(`I agree... that song is trash...\nHere are the remaing track's in the list:\n${displayList(serverQueue)}`)
     } else {
-       return await exports.stop(message, serverQueue);
+       return await exports.stop(interaction, serverQueue);
     }
 };
