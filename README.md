@@ -1,5 +1,8 @@
 # DiscordMusicApp
 ### Services required
+
+> To interact with discord's API... [see docs here](https://discord.com/developers/docs/intro)
+>
 > To be able to interact with google's YouTube API... ([see docs here](https://developers.google.com/youtube/v3)) you need to obtain a valid API key.
 ## Setup
 The setup here is fairly easy, you will be using your own computer to serve the application when you intend to use the service. 
