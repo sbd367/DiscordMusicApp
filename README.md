@@ -17,7 +17,7 @@ That config.json can be configured as such:
 
 You get these credentials by navigating to the [Discord developer portal](https://discord.com/developers/applications) and finding/creating your bot.
 
-You will also need to set your YouTube API key in a `.env` file within the root dir. This is used to get lists and build youtube video strings. ([see here](https://github.com/sbd367/DiscordMusicApp/blob/master/Components/getListInfo.js#L10)) 
+You will also need to set your YouTube API key in a `.env` file within the root dir. This is used to get lists and build youtube video strings. ([see here](https://github.com/sbd367/DiscordMusicApp/blob/master/Components/youtube-search-api.js#L10)) 
 
 ---
 

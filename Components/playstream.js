@@ -14,7 +14,7 @@ exports.playStream = async (url, connection, queueContruct) =>  {
     //listeners
     player.on(AudioPlayerStatus.Playing, () => console.log('playing audio'))
     player.on('error', err => {
-        console.warn(err)
+        console.warn(err);
     });
 
     //if the queue is at its last item just end connection
