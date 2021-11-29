@@ -1,8 +1,11 @@
+const { PlayerSubscription } = require('@discordjs/voice');
+
 //bring in libraries and get things all ready n stuff...
 require('dotenv').config();
-const {Client, Intents} = require('discord.js'),
+const {Client, Intents, ThreadChannel} = require('discord.js'),
       { token } = require('./config.json'),
       execute = require('./Components/execute'),
+      player = require('./Components/player'),
       cmds = require('./actions/commands'),
       queue = new Map(),
       client = new Client({intents: [
@@ -40,12 +43,12 @@ client.on('interactionCreate', async (interaction) => {
         const randomNoun = nouns[Math.floor(Math.random() * (0 + nouns.length) + 0)]
         return await interaction.reply(`get out of here you ${randomNoun}`)
     }
-    if(!interaction.isCommand()) return;
 
     let serverQueue = queue.get(interaction.guild.id), //Adds the current guild state to our map.
         checkFor = action => commandName.includes(action), //sinple method to serch for content actions.
         msg ='', //Build string
         {commandName} = interaction; //pull both the commmandName from the interaction.
+        if(!interaction.isCommand()) return
 
 
     //handle actions for each command - reply handled in module by default 
@@ -61,6 +64,8 @@ client.on('interactionCreate', async (interaction) => {
     } else if (checkFor(' -h')) {
         msg+='you can play youtube songs via \'+play {youtube link}\'\nyou can also skip songs or stop everthing all together by typing either \'+skip\' or \'+stop\'.';
         return await interaction.reply(noNeedToShowChat(msg));
+    }  else if (checkFor('player')) {
+        return await player.init(interaction, serverQueue);
     } else {
         msg+='You need to enter a valid command! - type \'+ -h\''
         return await interaction.reply(noNeedToShowChat(msg));
