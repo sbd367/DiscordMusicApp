@@ -2,8 +2,8 @@
 const {joinVoiceChannel} = require('@discordjs/voice'),
       stream = require('./playstream'),
       ytdl = require('ytdl-core-discord'),
-      youtubeRequest = require('./youtube-search-api');
-const { MessageActionRow, MessageButton, MessageEmbed } = require('discord.js');
+      youtubeRequest = require('./youtube-search-api'),
+    { MessageActionRow, MessageButton, MessageEmbed } = require('discord.js');
       require('discord.js');
 
 
@@ -15,9 +15,10 @@ const buildList = url => {
         //note of there is no id found in the url then that video is the first in the playlist.
         bObj = {
             listId: listId ? listId[0].replace(/.*list=/g, ''): null,
-            ind: !!ind.length ? ind[0].replace(/.*index=/g, '') : null
+            ind: !!ind.length ? ind[0].replace(/.*index=/g, '') : null,
+            isFirstItem: !ind.length
         };
-        return bObj;
+    return bObj;
 }
 
 //only display to the user
@@ -70,7 +71,6 @@ exports.runAction = async (interaction, serverQueue, queue) => {
         });
     //handle playlist logiic
     } else if(playlist) {
-
         const row = new MessageActionRow()
             .addComponents(
             new MessageButton()
@@ -109,6 +109,10 @@ exports.runAction = async (interaction, serverQueue, queue) => {
         })
     }
 };
+
+exports.addSong = async (serverQueue) => {
+
+}
 
 //awaits on ytdl for info
 exports.addPlaySong = async (startLink, songs, serverQueue, voiceChannel, queue, interaction, isFollowup = false ) => {
@@ -208,6 +212,7 @@ exports.skip = async (interaction, serverQueue) => {
     //send message and change stream to the next song in the queue.
     if(serverQueue.songs.length > 1){
         serverQueue.songs.shift();
+        console.log(serverQueue.songs)
         stream.playStream(serverQueue.songs[0].url, serverQueue.connection, serverQueue);
         return await interaction.reply({
             content: `I agree... that song is trash...\nHere are the remaing track's in the list:\n${displayList(serverQueue)}`,

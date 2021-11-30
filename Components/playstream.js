@@ -20,10 +20,11 @@ exports.playStream = async (url, connection, queueContruct) =>  {
     //if the queue is at its last item just end connection
     //otherwise play the next song in the queue.
     player.on(AudioPlayerStatus.Idle, () => {
+        console.log('its not doing anything', queueContruct)
         if(typeof(queueContruct) === undefined) return connection.destroy();
         if(queueContruct.songs.length){
             queueContruct.songs.shift();
-            exports.playStream(queueContruct.songs[0].url, player);
+            this.playStream(queueContruct.songs[0].url, player);
         } else {
             connection.destroy();
         }

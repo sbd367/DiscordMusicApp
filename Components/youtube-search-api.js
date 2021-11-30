@@ -10,25 +10,34 @@ const listRequest = async playlistInfo => {
         url: `https://www.googleapis.com/youtube/v3/playlistItems`,
         params: {
             key: process.env.YOUTUBE_API_KEY,
-            part: 'contentDetails',
+            part: 'snippet',
             playlistId: playlistInfo.listId,
-            maxResults: '10'
+            maxResults: '10',
+            snippet: true
         }
     };
 
     const data = await axios.request(reqPar).then(res => {
         let data = res.data;
         return data;
-    }), details = data.items.map((arrItem, ind) => {
-        const videoId = arrItem.contentDetails.videoId
+    });
+
+    if(playlistInfo.isFirstItem){
+        delete data.items[0];
+        data.items = data.items.filter(i => i);
+    }
+
+    const details = data.items.map((arrItem, ind) => {
+        const videoId = arrItem.snippet.resourceId.videoId
         return {
-            title: `playlist song #${ind}`,
+            title: arrItem.snippet.title,
             url: convert_id_to_url(videoId)
         }
     }); 
 
     return details;
 };
+
 
 const videoRequest = async searchStr => {
     let reqParams = {
