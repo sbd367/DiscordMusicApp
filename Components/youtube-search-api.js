@@ -20,6 +20,9 @@ const listRequest = async playlistInfo => {
     const data = await axios.request(reqPar).then(res => {
         let data = res.data;
         return data;
+    }).catch(err => {
+        console.warn('------Error in response to playlist request-------', err);
+        return interaction.reply({content: 'there was an issue with your YouTube request...\n I\'d sugest checking your quota', ephemoral: true})
     });
 
     if(playlistInfo.isFirstItem){
@@ -57,7 +60,8 @@ const videoRequest = async searchStr => {
             songId = songData.id.videoId;
         return convert_id_to_url(songId)
     }).catch(err => {
-        console.warn('ERROR', err);
+        console.warn('------Error in response to song request-------', err);
+        return interaction.reply({content: 'there was an issue with your YouTube request...\n I\'d sugest checking your quota', ephemoral: true})
     });
     return videoId;
 }
