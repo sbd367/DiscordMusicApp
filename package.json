@@ -2,6 +2,9 @@
   "name": "discordmusic",
   "version": "1.0.0",
   "description": "",
+  "engines": {
+    "node":"16.X"
+  },
   "main": "index.js",
   "scripts": {
     "start": "nodemon index.js",
