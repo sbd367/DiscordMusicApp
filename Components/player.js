@@ -5,8 +5,6 @@ exports.startUp = async (interaction, serverQueue) => {
         return interaction.reply({content: 'there are none', ephemoral: true})
     }
 
-    console.log(serverQueue)
-
     const row = new MessageActionRow()
             .addComponents(
             new MessageButton()
