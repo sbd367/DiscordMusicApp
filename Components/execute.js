@@ -65,6 +65,8 @@ exports.runAction = async (interaction, serverQueue, voiceChannel) => {
          searchArr = arg.split(' '),
          addNewSong = async (song, serverQueue, songs = null) => await this.addSong(song, serverQueue, songs, interaction); //async method to set our songs state
 
+    interaction.reply({content: 'figuring this out...', ephemeral: true});
+
     //run search and play song
     if(searchArr.length > 1 || !searchArr[0].includes('youtube.com/')){
         const searchString = searchArr.join(' '),
