@@ -10,9 +10,19 @@ exports.playStream = async (url, connection, queueContruct) =>  {
           });
     //init
     player.play(resource);
+    console.log('we\'re trying')
     connection.subscribe(player);
     //listeners
+    player.on(AudioPlayerStatus.Buffering, () => {
+        console.log('Buffering')
+    })
+    player.on(AudioPlayerStatus.Paused, () => {
+        console.log('paused');
+    })
     player.on(AudioPlayerStatus.Playing, () => console.log('playing audio'))
+    player.on(AudioPlayerStatus.AutoPaused, () => {
+        console.log('Auto paused');
+    })
     player.on('error', err => {
         console.warn(err);
     });
@@ -22,8 +32,8 @@ exports.playStream = async (url, connection, queueContruct) =>  {
     player.on(AudioPlayerStatus.Idle, () => {
         console.log('its not doing anything', queueContruct)
         if(typeof(queueContruct) === undefined) return connection.destroy();
+        queueContruct.songs.shift();
         if(queueContruct.songs.length){
-            queueContruct.songs.shift();
             this.playStream(queueContruct.songs[0].url, player);
         } else {
             connection.destroy();

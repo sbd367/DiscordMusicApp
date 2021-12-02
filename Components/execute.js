@@ -42,32 +42,29 @@ const displayList = serverQueue =>{
     return bs;
 };
 //large container for controlling state (waits on info for ytdl)
-exports.runAction = async (interaction, serverQueue, queue) => {
-    //capture argument
-    const voiceChannel = interaction.member.voice.channel;
-    const arg = interaction.options.getString('search') ? interaction.options.getString('search') : '';
+exports.runAction = async (interaction, serverQueue, voiceChannel) => {
 
-    if (!voiceChannel) {
-    return await interaction.reply(
-        "You need to be in a voice channel to play music!"
-    );
-    }
     //ensure permissions
     const permissions = voiceChannel.permissionsFor(interaction.client.user);
     if (!permissions.has("CONNECT") || !permissions.has("SPEAK")) {
-    return await interaction.reply(
-    "I need the permissions to join and speak in your voice channel!"
-    );
+        return await interaction.reply(
+            "I need the permissions to join and speak in your voice channel!"
+        );
     }
-    //if the link sent over is part of a playlist it will add the first 10 songs from that 
+
+    // - if the link sent over is part of a playlist it will add the first 10 songs from that 
     //playlist into the queue.
-    const playlist = arg.includes('list=') ? buildList(arg) : null,
-    searchArr = arg.split(' ');
-    //rub search and play song
+    const arg = interaction.options.getString('search') ? interaction.options.getString('search') : '',
+         playlist = arg.includes('list=') ? buildList(arg) : null,
+         searchArr = arg.split(' ');
+
+    //run search and play song
     if(searchArr.length > 1){
         const searchString = searchArr.join(' ');
         youtubeRequest.videoRequest(searchString).then( songData => {
-            return exports.addPlaySong(songData, null, serverQueue, voiceChannel, queue, interaction)
+            return !serverQueue.songs.length ? 
+                this.addSong(songData, serverQueue, null, interaction) && this.joinTheChannelAndPlay(voiceChannel, serverQueue, interaction) : 
+                this.addSong(songData, serverQueue, null, interaction);
         });
     //handle playlist logiic
     } else if(playlist) {
@@ -90,17 +87,21 @@ exports.runAction = async (interaction, serverQueue, queue) => {
         const msg = 'So I dont get thrown in youtube jail...\n'+
         'If you\'d like I can add (up to) 10 of those songs in that playlist to the queue\n'+
         'just respond "yes" to add the items... otherwise go kick sand.';
-
-        await interaction.reply({content: msg, ephemeral: true, embeds: [embed], components: [row], fetchReply: true}).then(() => {
-            interaction.channel.awaitMessageComponent({ max: 1, time: 30000, errors: ['time'] }).then((option) => {
+        const addSong = async (song, songs = null) => await this.addSong(song, serverQueue, songs, interaction);
+        return await interaction.reply({content: msg, ephemeral: true, embeds: [embed], components: [row], fetchReply: true}).then(async () => {
+            await interaction.channel.awaitMessageComponent({ max: 1, time: 30000, errors: ['time'] }).then((option) => {
                 if(option.customId === 'noThanks'){
-                    interaction.followUp({content: 'Okay I\'ll just add that one song...', ephemeral: true});
-                    return exports.addPlaySong(arg, null, serverQueue, voiceChannel, queue, interaction, true);
+                    addSong(arg, null).then(() => {
+                        return !serverQueue.songs.length ? this.joinTheChannelAndPlay(voiceChannel, serverQueue, interaction) : null;
+                    })
                 } else if (option.customId.includes('youtube.com')){
                     const params = buildList(option.customId);
                     youtubeRequest.listRequest(params).then(resp => {
-                        interaction.followUp({content: 'Okay I\'ll add that playlist to the queue', ephemeral: true});
-                        return exports.addPlaySong(arg, resp, serverQueue, voiceChannel, queue, interaction, true);
+                        addSong(arg, resp).then((res) => {
+                            let {serverQueue, interaction} = res;
+                            console.log(serverQueue.songs)
+                            return serverQueue.songs.length ? this.joinTheChannelAndPlay(voiceChannel, serverQueue, interaction) : console.log('null');
+                        })
                     })
                 }
             }).catch(err => {
@@ -110,66 +111,47 @@ exports.runAction = async (interaction, serverQueue, queue) => {
     }
 };
 
-exports.addSong = async (serverQueue) => {
-
-}
-
-//awaits on ytdl for info
-exports.addPlaySong = async (startLink, songs, serverQueue, voiceChannel, queue, interaction, isFollowup = false ) => {
-
-    //wait on the song results we get back from ytdl
-    const songInfo = await ytdl.getInfo(startLink);
-    const song = {
-        title: songInfo.videoDetails.title,
-        url: songInfo.videoDetails.video_url,
-    };
-
-    //if this is a fresh server and there is no state established
-    //or if you've previously ran the stop method  
-    if (!serverQueue || serverQueue.songs.length === 0) {
-        //new stuff for state mangmt...
-        const queueContruct = {
-            textChannel: serverQueue ? serverQueue.textChannel : null,
-            voiceChannel: voiceChannel,
-            connection: null,
-            songs: [],
-            volume: 5,
-            playing: true,
-        };
-
-        // Setting the queue using our contract
-        queue.set(interaction.guild.id, queueContruct);
-        // Pushing the song to our songs array
-        queueContruct.songs.push(song);
-        if(songs){
-            queueContruct.songs = queueContruct.songs.concat(songs);
-        }
-        
-        //try to connect to the voice server and then stream the song
-        try {
-            const connection = joinVoiceChannel({
-                channelId: voiceChannel.id,
-                guildId: voiceChannel.guild.id,
-                adapterCreator: voiceChannel.guild.voiceAdapterCreator
-            });
-            queueContruct.connection = connection;
-            stream.playStream(queueContruct.songs[0].url, connection, queueContruct);
-            return isFollowup ? 
-                interaction.followUp(noNeedToShowChat(`Currently playing: ${queueContruct.songs[0].title}\n New queue: ${displayList(queueContruct)}`)) : 
-                interaction.reply(noNeedToShowChat(`Currently playing: ${queueContruct.songs[0].title}`));
-        } catch (err) {
-            // Printing the error message if the bot fails to join the voicechat
-            console.warn('ERROR:', err);
-            queue.delete(interaction.guild.id);
-            return await interaction.reply(err);
-        }
-    } else {
-        //add new songs to queue
-        if(songs) queueContruct.songs = queueContruct.songs.push(songs);
-        serverQueue.songs.push(song);
-        return await interaction.reply(`${song.title} has been added to the queue!`);
+exports.joinTheChannelAndPlay = async (voiceChannel, serverQueue, interaction) => {
+    // try to connect to the voice server and then stream the song
+    try {
+        const connection = joinVoiceChannel({
+            channelId: voiceChannel.id,
+            guildId: voiceChannel.guild.id,
+            adapterCreator: voiceChannel.guild.voiceAdapterCreator
+        });
+        serverQueue.connection = connection;
+        console.log('trying with these songs', serverQueue)
+        await stream.playStream(serverQueue.songs[0].url, connection, serverQueue);
+        return true ? 
+            interaction.followUp(noNeedToShowChat(`Currently playing: ${serverQueue.songs[0].title}\n New queue: ${displayList(serverQueue)}`)) : 
+            interaction.reply(noNeedToShowChat(`Currently playing: ${serverQueue.songs[0].title}`));
+    } catch (err) {
+        // Printing the error message if the bot fails to join the voicechat
+        console.warn('ERROR:', err);
+        return await interaction.reply(err);
     }
 }
+
+exports.addSong = async (song, serverQueue, songs = null, interaction) => {
+    if(song.includes('youtube.com/')){
+        //wait on the song results we get back from ytdl
+        const songInfo = await ytdl.getInfo(song);
+        song = {
+            title: songInfo.videoDetails.title,
+            url: songInfo.videoDetails.video_url,
+        };
+    }
+    if(songs){
+        serverQueue.songs = serverQueue.songs.concat(songs);
+        interaction.editReply({content: 'I\'ll go ahead and get those added for ya.', ephemeral: true});
+    } else {
+        serverQueue.songs.push(song);
+        interaction.editReply({content: `Alright I\'ve added ${song.title} to the queue`, ephemeral: true});
+    }
+
+    return await {serverQueue: serverQueue, interaction: interaction}
+}
+
 exports.stop = async (interaction, serverQueue) => {
     //Precheck
     if (!interaction.member.voice.channel || !serverQueue || serverQueue.connection._state.status === 'destroyed'){
