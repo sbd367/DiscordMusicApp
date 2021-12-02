@@ -1,8 +1,10 @@
 //bring in libraries and get things all ready n stuff...
 require('dotenv').config();
-const {Client, Intents} = require('discord.js'),
-      { token } = require('./config.json'),
+const {Client, Intents, ThreadChannel} = require('discord.js'),
+      { token, prefix } = require('./config.json'),
+      {nouns, adjectives} = require('./assets/staticData'),
       execute = require('./Components/execute'),
+      player = require('./Components/player'),
       cmds = require('./actions/commands'),
       queue = new Map(),
       client = new Client({intents: [
@@ -18,7 +20,6 @@ const noNeedToShowChat = content => {
 }
 //log different status levels
 client.once('ready', () => {
-    console.log('ready state')
     const gId = process.env.GUILD_ID,
         guild = client.guilds.cache.get(gId);
     
@@ -26,6 +27,7 @@ client.once('ready', () => {
     cmds.commands.forEach(command => {
         commands.create(command);
     });
+    console.log('-----------We\'re good to go---------------')
 });
 client.once('reconnecting', () => {
     console.log('Reconnecting!');
@@ -35,27 +37,61 @@ client.once('disconnect', () => {
 });
 
 client.on('interactionCreate', async (interaction) => {
-    //++++++BAN Tyche+++++
+    //++++++BAN TYCHE+++++
     if(interaction.user.id === process.env.BANNED_TYCHE){
-        const randomNoun = nouns[Math.floor(Math.random() * (0 + nouns.length) + 0)]
-        return await interaction.reply(`get out of here you ${randomNoun}`)
+        const nounRandomNumber = Math.floor(Math.random() * nouns.length),
+        adjRandomNumber = Math.floor(Math.random() * adjectives.length),
+        adjRandomNumber1 = Math.floor(Math.random() * adjectives.length),
+        noun = nouns[nounRandomNumber],
+        adjective = adjectives[adjRandomNumber],
+        adjective1 = adjectives[adjRandomNumber1];
+        return await interaction.reply(`fuck you tyche... you ${adjective}, ${adjective1}, ${noun}.`)
     }
-    if(!interaction.isCommand()) return;
+    //++++++++END BAN TYCHE+++++++++++++
 
+    //Setup variables required for interactions in general.
     let serverQueue = queue.get(interaction.guild.id), //Adds the current guild state to our map.
+        {commandName} = interaction, //pull both the commmandName from the interaction.
+        voiceChannel = interaction.member.voice.channel, //capture voice channel
         checkFor = action => commandName.includes(action), //sinple method to serch for content actions.
-        msg ='', //Build string
-        {commandName} = interaction; //pull both the commmandName from the interaction.
+        msg =''; //Build string //pull both the commmandName from the interaction.
+        if(!interaction.isCommand()) return
 
+    //member needs to be in a voice channel
+    if (!voiceChannel) {
+        return await interaction.reply(
+            "You need to be in a voice channel to play music!"
+        );
+    }
+
+    //if serverQueue songs are undefined, initialize connection and add it to our state.
+    if (!serverQueue || !serverQueue.songs) {
+        //new stuff for state mangmt...
+        const queueContruct = {
+            textChannel: serverQueue ? serverQueue.textChannel : null,
+            voiceChannel: voiceChannel,
+            connection: null,
+            songs: [],
+            volume: 4,
+            playing: false,
+        };
+        console.log('server q', serverQueue)
+        // Setting the queue using our contract
+        queue.set(interaction.guild.id, queueContruct);
+        serverQueue = queueContruct;
+    }
+    //todo: add in player component
+    // if(checkFor('player')){
+    //     return await player.startUp(interaction, serverQueue)
+    // }
 
     //handle actions for each command - reply handled in module by default 
     if (checkFor('play')) {
-        return await execute.runAction(interaction, serverQueue, queue); // See: https://github.com/sbd367/DiscordMusicApp/blob/master/Components/execute.js#L15
+        return await execute.runAction(interaction, serverQueue, voiceChannel); // See: https://github.com/sbd367/DiscordMusicApp/blob/master/Components/execute.js#L15
     } else if(checkFor('list')) {
         return await execute.list(interaction, serverQueue);
     } else if (checkFor('skip')) {
-        skipResp = execute.skip(interaction, serverQueue);
-        return  serverQueue = await skipResp.newServerQueue;
+        return await execute.skip(interaction, serverQueue);
     } else if (checkFor('stop')) {
         return await execute.stop(interaction, serverQueue);
     } else if (checkFor(' -h')) {
@@ -66,6 +102,17 @@ client.on('interactionCreate', async (interaction) => {
         return await interaction.reply(noNeedToShowChat(msg));
     }
 
-})
+});
+
+client.on('messageCreate', async (message) => {
+    if(message.author.bot) return;
+    const nounRandomNumber = Math.floor(Math.random() * nouns.length),
+        adjRandomNumber = Math.floor(Math.random() * adjectives.length),
+        noun = nouns[nounRandomNumber],
+        adjective = adjectives[adjRandomNumber],
+        condition = message.content[0] === prefix;
+    condition ? await message.reply({content: `messages are depricated, use slash commands instead... you ${adjective} ${noun}`, ephemeral: true}) : null;
+    return;
+});
 
 client.login(token);

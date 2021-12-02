@@ -7,7 +7,7 @@ let adjectives = [
 let nouns = [
     "bone-head", "egg", "dunce", "dipstick", "dingbat", "imbecile", "airhead", "birdbrain", "bozo", "bug off", "creep", "dingaling", "dingleberry", "dippy", "doofus", "dweeb", "floozie", "geezer", "goon", "half-wit", "jaggoff", "knucklehead", "lug", "pansy", "scum", "schmuck", "tossbag",
         "twat", "wimp", "twerp", "donkey", "lickspittle", "ninny", "hobknob", "mooncalf", "simpleton", "beta", "boomer", "brickhead", "buffoon", "caveman", "chump", "clod", "commie", "dirtbag", "dope", "edgelord", "earthworm",  "failure", "fruitcake", "goof", "grouch", "hippie", "hooligan", "louse",
-        "low-life", "maggot", "meanie", "mongoose", "muppet", "nerd", "geek", "nimrod", "noodle", "oddball", "potato", "quack", "rat", "reject", "shrew", "slob", "snail", "snake", "snotball", "swine", "toad", "anti-vaxxer", "waste", "yeti", "witch", "yahoo"
+        "low-life", "maggot", "meanie", "fuck", "retard", "dumbass", "mongoose", "faggot", "muppet", "nerd", "geek", "nimrod", "noodle", "oddball", "potato", "quack", "rat", "reject", "shrew", "slob", "snail", "snake", "snotball", "swine", "toad", "anti-vaxxer", "waste", "yeti", "witch", "yahoo"
 ];
 
 module.exports.nouns = nouns;
