@@ -1,7 +1,7 @@
 //init constants 
 const {joinVoiceChannel} = require('@discordjs/voice'),
       stream = require('./playstream'),
-      ytdl = require('ytdl-core-discord'),
+      ytdl = require('discord-ytdl-core'),
       youtubeRequest = require('./youtube-search-api'),
     { MessageActionRow, MessageButton, MessageEmbed } = require('discord.js');
       require('discord.js');

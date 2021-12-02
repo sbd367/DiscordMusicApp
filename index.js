@@ -1,6 +1,6 @@
 //bring in libraries and get things all ready n stuff...
 require('dotenv').config();
-const { Client, Intents, ThreadChannel } = require('discord.js'),
+const { Client, Intents } = require('discord.js'),
     { nouns, adjectives } = require('./assets/staticData'),
     execute = require('./Components/execute'),
     // player = require('./Components/player'), //TODO

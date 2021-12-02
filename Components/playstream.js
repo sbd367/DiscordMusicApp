@@ -1,15 +1,20 @@
 const { createAudioPlayer, createAudioResource, StreamType, AudioPlayerStatus} = require('@discordjs/voice');
-const ytdl = require('ytdl-core-discord');
+const ytdl = require('discord-ytdl-core');
 //Await on the opus stream and then play said resource
 exports.playStream = async (url, serverQueue) =>  {
     //Init values
+    console.log('called for resource')
     const player = createAudioPlayer(),
          {connection} = serverQueue,
-          file = await ytdl(url),
-          resource = createAudioResource(file, {
+          file = await ytdl(url, {
+            filter: 'audioonly',
+            opusEncoded: true
+        }),
+          resource = await createAudioResource(file, {
             inputType: StreamType.Opus
           });
     //init
+    console.log('got rescource')
     player.play(resource);
     connection.subscribe(player);
 
