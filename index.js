@@ -1,10 +1,9 @@
 //bring in libraries and get things all ready n stuff...
 require('dotenv').config();
 const { Client, Intents, ThreadChannel } = require('discord.js'),
-    { token, prefix } = require('./config.json'),
     { nouns, adjectives } = require('./assets/staticData'),
     execute = require('./Components/execute'),
-    player = require('./Components/player'),
+    // player = require('./Components/player'), //TODO
     cmds = require('./actions/commands'),
     queue = new Map(),
     client = new Client({
@@ -118,9 +117,8 @@ client.on('messageCreate', async (message) => {
         adjRandomNumber = Math.floor(Math.random() * adjectives.length),
         noun = nouns[nounRandomNumber],
         adjective = adjectives[adjRandomNumber],
-        condition = message.content[0] === prefix;
-    condition ? await message.reply({ content: `Messages are depricated, use slash commands instead... you ${adjective} ${noun}`}) : null;
-    return;
+        condition = message.content[0] === '+';
+    return condition ? await message.reply({ content: `Messages are depricated, use slash commands instead... you ${adjective} ${noun}`}) : null;
 });
 
-client.login(token);
+client.login(process.env.DISCORD_TOKEN);
