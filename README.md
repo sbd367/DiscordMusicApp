@@ -21,6 +21,10 @@ Then simply install you local deps by running `npm install`
 
 Once that's finished then you can run your local dev server by using `npm run start`
 
+## Deploy
+This project is pre-set for you to deploy on heroku with little to no effort. [See more about deploying to heroku](https://devcenter.heroku.com/articles/deploying-nodejs)\
+Also take a look into what [Workers](https://devcenter.heroku.com/articles/background-jobs-queueing) are within Heroku
+
 ## Functionality 
 
 This disord bot, when given a youtube link or search term, will join your voice server and play that audio to your friends. If you provide a link that is part of a YouTube playlist, then the first 10 songs (so we dont ping YouTube if there's a 1M song playlist) will be added to the queue... 
