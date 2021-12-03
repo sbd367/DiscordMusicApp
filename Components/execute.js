@@ -41,7 +41,10 @@ const displayList = serverQueue =>{
     // return the built string
     return bs;
 };
-//large container for controlling state (waits on info for ytdl)
+
+//large container for controlling state 
+//NOTE: the interaction messages are to be defferred outside of this method besides initalization of the interaction reply
+//      followups should be handled in their respective modules, based off of its scoped state (serverQueue, interaction status).
 exports.runAction = async (interaction, serverQueue, voiceChannel) => {
     //ensure permissions
     const permissions = voiceChannel.permissionsFor(interaction.client.user);
@@ -55,8 +58,6 @@ exports.runAction = async (interaction, serverQueue, voiceChannel) => {
        await this.joinTheChannel(voiceChannel, serverQueue, interaction)
     }
 
-    const addNewSongMessage = async (newSong, interaction) => await interaction.reply({content: `Added: ${newSong.title}`, ephemeral: true});
-
     // - Setup Args to see what kind of search this is: (regular/playlist link, keyword search)
     //if the link sent over is part of a playlist it will add the first 10 songs from that 
     //playlist into the queue.
@@ -65,7 +66,7 @@ exports.runAction = async (interaction, serverQueue, voiceChannel) => {
          searchArr = arg.split(' '),
          addNewSong = async (song, serverQueue, songs = null) => await this.addSong(song, serverQueue, songs, interaction); //async method to set our songs state
 
-    interaction.reply({content: 'figuring this out...', ephemeral: true});
+    interaction.reply({content: 'Figuring this all out...', ephemeral: true});
 
     //run search and play song
     if(searchArr.length > 1 || !searchArr[0].includes('youtube.com/')){
@@ -75,7 +76,7 @@ exports.runAction = async (interaction, serverQueue, voiceChannel) => {
         await addNewSong(newSongData, serverQueue, null);
         let newSong = serverQueue.songs[0];
         //if there's more than one song already in the queue just add the song else start playstream
-        serverQueue.songs.length === 1 ? stream.playStream(newSong.url, serverQueue) : addNewSongMessage(newSong, interaction);
+        serverQueue.songs.length === 1 ? stream.playStream(newSong.url, serverQueue) : null;
     //handle playlist logiic
     } else if(playlist) {
         const row = new MessageActionRow()
@@ -102,11 +103,12 @@ exports.runAction = async (interaction, serverQueue, voiceChannel) => {
             await interaction.channel.awaitMessageComponent({ max: 1, time: 30000, errors: ['time'] }).then(async (option) => {
                 if(option.customId === 'noThanks'){
                     await addNewSong(arg,serverQueue, null);
-                    return serverQueue.songs.length === 1 ? stream.playStream(newSong.url, serverQueue) : addNewSongMessage(newSong, interaction);
+                    return serverQueue.songs.length === 1 ? stream.playStream(newSong.url, serverQueue) : null;
                 } else if (option.customId.includes('youtube.com')){
                     const params = buildList(option.customId),
                         newSongs = await youtubeRequest.listRequest(params);
-                    return newSongs.length ? await addNewSong(arg, serverQueue, resp) : addNewSongMessage(newSong, interaction);
+                    await addNewSong(arg, serverQueue, newSongs);
+                    return serverQueue.songs.length === 1 ? stream.playStream(newSong.url, serverQueue) : null;
                 }
             }).catch(err => {
                 interaction.editReply({content: 'You ran out of time', ephemeral: true});
@@ -117,7 +119,7 @@ exports.runAction = async (interaction, serverQueue, voiceChannel) => {
         await addNewSong(searchArr[0], serverQueue, null);
         let newSong = serverQueue.songs[0];
         //if there's more than one song already in the queue just add the song else start playstream
-        serverQueue.songs.length === 1 ? stream.playStream(newSong.url, serverQueue) : addNewSongMessage(newSong, interaction);
+        serverQueue.songs.length === 1 ? stream.playStream(newSong.url, serverQueue) : null;
     }
 };
 
