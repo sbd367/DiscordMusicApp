@@ -16,11 +16,7 @@ const { Client, Intents } = require('discord.js'),
         ]
     });
 
-const noNeedToShowChat = content => {
-    return { content: content, ephemeral: true }
-}
-
-const setupState = async (serverQueue, voiceChannel, interaction) => {
+const setupState = (serverQueue, voiceChannel, interaction) => {
     //new stuff for state mangmt...
     const queueContruct = {
         textChannel: serverQueue ? serverQueue.textChannel : null,
@@ -31,9 +27,7 @@ const setupState = async (serverQueue, voiceChannel, interaction) => {
         playing: false,
     };
     // Setting the queue using our contract
-    queue.set(interaction.guild.id, queueContruct);
-    serverQueue = queueContruct;
-    return { serverQueue: serverQueue, voiceChannel: voiceChannel, interaction: interaction };
+    return queue.set(interaction.guild.id, queueContruct);
 };
 
 //log different status levels
@@ -55,11 +49,14 @@ client.once('disconnect', () => {
 });
 
 client.on('interactionCreate', async (interaction) => {
+    const noNeedToShowChat = content => {
+        return { content: content, ephemeral: true }
+    };
     //++++++BAN TYCHE+++++
     if (interaction.user.id === process.env.BANNED_TYCHE) {
-        const nounRandomNumber = Math.floor(Math.random() * nouns.length),
-            adjRandomNumber = Math.floor(Math.random() * adjectives.length),
-            adjRandomNumber1 = Math.floor(Math.random() * adjectives.length),
+        const nounRandomNumber = Math.floor(Math.random() * (nouns.length - 1)),
+            adjRandomNumber = Math.floor(Math.random() * (adjectives.length - 1)),
+            adjRandomNumber1 = Math.floor(Math.random() * (adjectives.length - 1)),
             noun = nouns[nounRandomNumber],
             adjective = adjectives[adjRandomNumber],
             adjective1 = adjectives[adjRandomNumber1];
@@ -68,29 +65,26 @@ client.on('interactionCreate', async (interaction) => {
     //++++++++END BAN TYCHE+++++++++++++
 
     //Setup variables required for interactions in general.
-    let serverQueue = queue.get(interaction.guild.id), //Adds the current guild state to our map.
-        { commandName } = interaction, //pull both the commmandName from the interaction.
-        voiceChannel = interaction.member.voice.channel, //capture voice channel
-        checkFor = action => commandName.includes(action), //sinple method to serch for content actions.
-        msg = ''; //Build string //pull both the commmandName from the interaction.
+    let serverQueue = queue.get(interaction.guild.id), //Adds the current guild ( discord server ) state to our map.
+        { commandName, member } = interaction, //pull the commmandName from the interaction.
+        voiceChannel = member.voice.channel, //capture voice channel
+        checkFor = action => commandName.includes(action), //simple method - used when responding.
+        msg = ''; //Build string
 
     if (!interaction.isCommand()) return //needs to be a command.
-    //if serverQueue songs are undefined, initialize connection and add it to our state.
+
+    //if serverQueue.songs is undefined, initialize connection and add it to our state.
     if (!serverQueue || !serverQueue.songs) {
-        const state = await setupState(serverQueue, voiceChannel, interaction)
-        serverQueue = state.serverQueue; voiceChannel = state.voiceChannel; interaction = state.interaction;
+        setupState(serverQueue, voiceChannel, interaction);
+        serverQueue = queue.get(interaction.guild.id);
     }
+
     //member needs to be in a voice channel
     if (!voiceChannel) {
         return await interaction.reply(
             "You need to be in a voice channel to play music!"
         );
     }
-
-    //todo: add in player component
-    // if(checkFor('player')){
-    //     return await player.startUp(interaction, serverQueue)
-    // }
 
     //handle actions for each command - reply handled in module by default 
     if (checkFor('play')) {
@@ -108,6 +102,10 @@ client.on('interactionCreate', async (interaction) => {
         msg += 'You need to enter a valid command! - type \'+ -h\''
         return await interaction.reply(noNeedToShowChat(msg));
     }
+    //todo: add in player component
+    // if(checkFor('player')){
+    //     return await player.startUp(interaction, serverQueue)
+    // }
 
 });
 
