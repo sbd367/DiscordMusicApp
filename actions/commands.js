@@ -22,9 +22,9 @@ exports.commands  = [
     {
         name: 'list',
         description: 'Use this command to list itmes in the playlist.'
-    },
-    {
-        name: 'player',
-        description: 'Use this command to navigate through the song queue.'
     }
+    // {
+    //     name: 'player', Shhhh............ soon.
+    //     description: 'Use this command to navigate through the song queue.'
+    // }
 ]

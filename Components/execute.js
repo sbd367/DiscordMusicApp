@@ -75,7 +75,7 @@ exports.runAction = async (interaction, serverQueue, voiceChannel) => {
         await addNewSong(newSongData, serverQueue, null);
         let newSong = serverQueue.songs[0];
         //if there's more than one song already in the queue just add the song else start playstream
-        serverQueue.songs.length === 1 ? stream.playStream(newSong.url, serverQueue) : addNewSongMessage(newSong, interaction);
+        serverQueue.songs.length === 1 ? stream.playStream(newSong.url, serverQueue) : null;
     //handle playlist logiic
     } else if(playlist) {
         const row = new MessageActionRow()
@@ -117,7 +117,7 @@ exports.runAction = async (interaction, serverQueue, voiceChannel) => {
         await addNewSong(searchArr[0], serverQueue, null);
         let newSong = serverQueue.songs[0];
         //if there's more than one song already in the queue just add the song else start playstream
-        serverQueue.songs.length === 1 ? stream.playStream(newSong.url, serverQueue) : addNewSongMessage(newSong, interaction);
+        serverQueue.songs.length === 1 ? stream.playStream(newSong.url, serverQueue) : null;
     }
 };
 
