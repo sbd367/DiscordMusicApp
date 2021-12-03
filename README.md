@@ -6,7 +6,7 @@ The first step is to clone the repository, then navigate to the directory that y
 
 You can decide how to handle envrinment variables but I like to use [dotenv](https://www.npmjs.com/package/dotenv)
 
-### There are 5 credendials required to use this app
+### There are 4 credendials required to use this app
 
 1. `YOUTUBE_API_KEY` - Your valid YouTube API key. ([see docs here](https://developers.google.com/youtube/v3))
 2. `DISCORD_TOKEN`
