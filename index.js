@@ -25,20 +25,22 @@ const setupState = (serverQueue, voiceChannel, interaction) => {
         songs: [],
         volume: 4,
         playing: false,
-    };
+    }, 
+    gId = interaction.guild.id,
+    guild = client.guilds.cache.get(gId),
+    commands = guild ? guild?.commands : client?.commands;
+
+    cmds.commands.forEach(command => {
+        commands.create(command);
+    });
+
+    console.log('runs');
     // Setting the queue using our contract
     return queue.set(interaction.guild.id, queueContruct);
 };
 
 //log different status levels
 client.once('ready', () => {
-    const gId = process.env.GUILD_ID,
-        guild = client.guilds.cache.get(gId);
-
-    let commands = guild ? guild.commands : client?.commands;
-    cmds.commands.forEach(command => {
-        commands.create(command);
-    });
     console.log('-----------We\'re good to go---------------')
 });
 client.once('reconnecting', () => {
@@ -75,7 +77,7 @@ client.on('interactionCreate', async (interaction) => {
 
     //if serverQueue.songs is undefined, initialize connection and add it to our state.
     if (!serverQueue || !serverQueue.songs) {
-        setupState(serverQueue, voiceChannel, interaction);
+        await setupState(serverQueue, voiceChannel, interaction);
         serverQueue = queue.get(interaction.guild.id);
     }
 
@@ -111,6 +113,13 @@ client.on('interactionCreate', async (interaction) => {
 
 client.on('messageCreate', async (message) => {
     if (message.author.bot) return;
+    let serverQueue = queue.get(message.guild.id)
+    if (!serverQueue || !serverQueue.songs) {
+        let {  member } = message, //pull the commmandName from the interaction.
+        voiceChannel = member.voice.channel;
+        await setupState(serverQueue, voiceChannel, message);
+        serverQueue = queue.get(message.guild.id);
+    }
     const nounRandomNumber = Math.floor(Math.random() * nouns.length),
         adjRandomNumber = Math.floor(Math.random() * adjectives.length),
         noun = nouns[nounRandomNumber],
