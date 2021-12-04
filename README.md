@@ -14,7 +14,7 @@ The first step is to clone the repository, then navigate to the directory that y
 2. `DISCORD_TOKEN`
 3. `DISCORD_CLIENT_ID`
 
-> **For items 2-4 you can simply add the approptiate credentials for your discord bot.** ([Discord Developer Portal](https://discord.com/developers/applications))
+> **For items 2 and 3 you can simply add the approptiate credentials for your discord bot.** ([Discord Developer Portal](https://discord.com/developers/applications))
 
 ---
 Once that's finished then you can run your local dev server by using `npm run start`
