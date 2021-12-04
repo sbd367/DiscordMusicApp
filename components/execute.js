@@ -161,6 +161,7 @@ exports.addSong = async (song, serverQueue, songs = null, interaction) => {
     }
 
     //if this is the first song getting added to the playlist then start the stream
+    let newSong = serverQueue.songs[0];
     if(serverQueue.songs.length === 1){
         await stream.playStream(newSong.url, serverQueue);
     }
