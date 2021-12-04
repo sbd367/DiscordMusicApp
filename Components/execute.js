@@ -53,20 +53,22 @@ exports.runAction = async (interaction, serverQueue, voiceChannel) => {
             "I need the permissions to join and speak in your voice channel!"
         );
     }
-
+    //update the user that we're looking into it
+    interaction.reply({content: 'Figuring this all out...', ephemeral: true});
     if(!serverQueue.songs.length || !serverQueue.connection){
        await this.joinTheChannel(voiceChannel, serverQueue, interaction)
     }
 
-    // - Setup Args to see what kind of search this is: (regular/playlist link, keyword search)
+    // - Setup `arg` to see what kind of search this is: (regular/playlist link, keyword search)
     //if the link sent over is part of a playlist it will add the first 10 songs from that 
     //playlist into the queue.
     const arg = interaction.options.getString('search') ? interaction.options.getString('search') : '',
          playlist = arg.includes('list=') ? buildList(arg) : null,
          searchArr = arg.split(' '),
-         addNewSong = async (song, serverQueue, songs = null) => await this.addSong(song, serverQueue, songs, interaction); //async method to set our songs state
-
-    interaction.reply({content: 'Figuring this all out...', ephemeral: true});
+         addNewSong = async (song, serverQueue, songs = null) => await this.addSong(song, serverQueue, songs, interaction),
+         playTheSong = async (newSong, serverQueue) => {
+            if(serverQueue.songs.length === 1) return await stream.playStream(newSong.url, serverQueue);
+         }; //async method to set our songs state
 
     //run search and play song
     if(searchArr.length > 1 || !searchArr[0].includes('youtube.com/')){
@@ -103,12 +105,12 @@ exports.runAction = async (interaction, serverQueue, voiceChannel) => {
             await interaction.channel.awaitMessageComponent({ max: 1, time: 30000, errors: ['time'] }).then(async (option) => {
                 if(option.customId === 'noThanks'){
                     await addNewSong(arg,serverQueue, null);
-                    return serverQueue.songs.length === 1 ? stream.playStream(newSong.url, serverQueue) : null;
+                    if(serverQueue.songs.length === 1) return stream.playStream(newSong.url, serverQueue);
                 } else if (option.customId.includes('youtube.com')){
                     const params = buildList(option.customId),
                         newSongs = await youtubeRequest.listRequest(params);
                     await addNewSong(arg, serverQueue, newSongs);
-                    return serverQueue.songs.length === 1 ? stream.playStream(newSong.url, serverQueue) : null;
+                    if(serverQueue.songs.length === 1) return stream.playStream(newSong.url, serverQueue);
                 }
             }).catch(err => {
                 interaction.editReply({content: 'You ran out of time', ephemeral: true});
@@ -148,6 +150,8 @@ exports.addSong = async (song, serverQueue, songs = null, interaction) => {
             url: songInfo.videoDetails.video_url,
         };
     }
+
+    //Handle weather or not these are playlist results
     if(songs){
         serverQueue.songs = serverQueue.songs.concat(songs);
         interaction.editReply({content: 'I\'ll go ahead and get those added for ya.', ephemeral: true});
@@ -156,7 +160,10 @@ exports.addSong = async (song, serverQueue, songs = null, interaction) => {
         interaction.editReply({content: `Alright I\'ve added ${song.title} to the queue`, ephemeral: true});
     }
 
-    return await {newServerQueue: serverQueue, interaction: interaction}
+    //if this is the first song getting added to the playlist then start the stream
+    if(serverQueue.songs.length === 1){
+        await stream.playStream(newSong.url, serverQueue);
+    }
 }
 
 exports.stop = async (interaction, serverQueue) => {

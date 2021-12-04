@@ -2,7 +2,7 @@
 require('dotenv').config();
 const { Client, Intents } = require('discord.js'),
     { nouns, adjectives } = require('./assets/staticData'),
-    execute = require('./Components/execute'),
+    execute = require('./components/execute'),
     // player = require('./Components/player'), //TODO
     cmds = require('./actions/commands'),
     queue = new Map(),
