@@ -29,6 +29,6 @@ Also take a look into what [Workers](https://devcenter.heroku.com/articles/backg
 This disord bot, when given a youtube link or search term, will join your voice server and play that audio to your friends. If you provide a link that is part of a YouTube playlist, then the first 10 songs (so we dont ping YouTube if there's a 1M song playlist) will be added to the queue... 
 
 ## Notes
-[see docs]() about how this thing works\
+[see docs](https://github.com/sbd367/DiscordMusicApp/tree/master/docs) about how this thing works\
 This application was written with the latest version of Discord.js (v13), if you'd like to expand on the project be warry, as there are a lot of differences between v12 and v13. This took a lot longer than expected as documentation is slim...
 You can view the Docs for Discord.js [here](https://discord.js.org/#/docs/main/stable/general/welcome).
