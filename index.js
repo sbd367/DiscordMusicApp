@@ -41,6 +41,7 @@ const setupState = (serverQueue, voiceChannel, interaction) => {
 
 //log different status levels
 client.once('ready', () => {
+    //TODO: add greeting message to set state
     console.log('-----------We\'re good to go---------------')
 });
 client.once('reconnecting', () => {
@@ -112,6 +113,7 @@ client.on('interactionCreate', async (interaction) => {
 });
 
 client.on('messageCreate', async (message) => {
+    console.log('this code runs')
     if (message.author.bot) return;
     let serverQueue = queue.get(message.guild.id)
     if (!serverQueue || !serverQueue.songs) {

@@ -12,7 +12,7 @@ const listRequest = async playlistInfo => {
             key: process.env.YOUTUBE_API_KEY,
             part: 'snippet',
             playlistId: playlistInfo.listId,
-            maxResults: '10',
+            maxResults: 10,
             snippet: true
         }
     };
@@ -25,16 +25,12 @@ const listRequest = async playlistInfo => {
         return interaction.reply({content: 'there was an issue with your YouTube request...\n I\'d sugest checking your quota', ephemoral: true})
     });
 
-    if(playlistInfo.isFirstItem){
-        delete data.items[0];
-        data.items = data.items.filter(i => i);
-    }
-
     const details = data.items.map((arrItem, ind) => {
-        const videoId = arrItem.snippet.resourceId.videoId
+        const {snippet} = arrItem;
         return {
             title: arrItem.snippet.title,
-            url: convert_id_to_url(videoId)
+            thumbnail: arrItem.snippet.thumbnails.default,
+            url: convert_id_to_url(snippet.resourceId.videoId)
         }
     }); 
 
@@ -57,11 +53,12 @@ const videoRequest = async searchStr => {
     }
     const videoId = await axios.request(reqParams).then( resp => {
         let songData = resp.data.items[0],
-            songId = songData.id.videoId;
-        return convert_id_to_url(songId)
+            songId = songData.id.videoId,
+            songUrl = convert_id_to_url(songId);
+        return {title: songData.snippet.title, url: songUrl, thumbnail: songData.snippet.thumbnails.default}
     }).catch(err => {
         console.warn('------Error in response to song request-------', err);
-        return interaction.reply({content: 'there was an issue with your YouTube request...\n I\'d sugest checking your quota', ephemoral: true})
+        return interaction.editReply({content: 'there was an issue with your YouTube request...\n I\'d sugest checking your quota', ephemoral: true})
     });
     return videoId;
 }
