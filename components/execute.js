@@ -147,27 +147,12 @@ exports.joinTheChannel = async (voiceChannel, serverQueue, interaction) => {
 
 exports.useWeather = async (interaction, serverQueue) => {
     const zip = interaction.options.getString('zipcode'),
-    weatherData = await weatherService.getByZipCode(zip),
-    {current, location} = weatherData,
-    stuffWeCareAbout = {
-        location: {
-            place: location.name,
-            state: location.region
-        },
-        humidity: current.humidity,
-        feels_like: current.feelslike_f,
-        actual_temp: current.temp_f,
-        condition: {
-            type: current.condition.text,
-            icon: current.condition.icon
-        },
-        uv_ind: current.uv
-    },
+    weatherData = await weatherService.getByZipCode(zip);
     embed = new MessageEmbed()
         .setColor('DARKER_GREY')
-        .setTitle(`Current Temp: ${stuffWeCareAbout.actual_temp}\nFeels like: ${stuffWeCareAbout.feels_like}\nHumidity: ${stuffWeCareAbout.humidity}\nUV index: ${stuffWeCareAbout.uv_ind}`)
-        .setAuthor(`It's currently: ${stuffWeCareAbout.condition.type}`, `https:${stuffWeCareAbout.condition.icon}`);
-    interaction.reply({content:`Here's the current weather info for ${stuffWeCareAbout.location.place}, ${stuffWeCareAbout.location.state}`, embeds:[embed]})
+        .setTitle(`Current Temp: ${weatherData.actual_temp} °F\nFeels like: ${weatherData.feels_like} °F\nHumidity: ${weatherData.humidity}%\nUV index: ${stuffWeCareAbout.uv_ind}`)
+        .setAuthor(`It's currently: ${weatherData.condition.type}`, `https:${weatherData.condition.icon}`);
+    interaction.reply({content:`Here's the current weather info for ${weatherData.location.place}, ${weatherData.location.state}`, embeds:[embed]})
 }
 
 exports.addSong = async (song, serverQueue, songs = null, interaction, hasAlreadyCalledYouTube) => {
