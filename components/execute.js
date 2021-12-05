@@ -1,9 +1,10 @@
 //init constants 
 const {joinVoiceChannel} = require('@discordjs/voice'),
       stream = require('./playstream'),
+      weatherService = require('./weather-api-service'),
       ytdl = require('discord-ytdl-core'),
       youtubeRequest = require('./youtube-search-api'),
-    { MessageActionRow, MessageButton, MessageEmbed, ButtonInteraction, MessageSelectMenu } = require('discord.js');
+    { MessageActionRow, MessageButton, MessageEmbed, MessageSelectMenu } = require('discord.js');
       require('discord.js');
 
 
@@ -142,6 +143,31 @@ exports.joinTheChannel = async (voiceChannel, serverQueue, interaction) => {
         console.warn('ERROR:', err);
         return await interaction.reply(err);
     }
+}
+
+exports.useWeather = async (interaction, serverQueue) => {
+    const zip = interaction.options.getString('zipcode'),
+    weatherData = await weatherService.getByZipCode(zip),
+    {current, location} = weatherData,
+    stuffWeCareAbout = {
+        location: {
+            place: location.name,
+            state: location.region
+        },
+        humidity: current.humidity,
+        feels_like: current.feelslike_f,
+        actual_temp: current.temp_f,
+        condition: {
+            type: current.condition.text,
+            icon: current.condition.icon
+        },
+        uv_ind: current.uv
+    },
+    embed = new MessageEmbed()
+        .setColor('DARKER_GREY')
+        .setTitle(`Current Temp: ${stuffWeCareAbout.actual_temp}\nFeels like: ${stuffWeCareAbout.feels_like}\nHumidity: ${stuffWeCareAbout.humidity}\nUV index: ${stuffWeCareAbout.uv_ind}`)
+        .setAuthor(`It's currently: ${stuffWeCareAbout.condition.type}`, `https:${stuffWeCareAbout.condition.icon}`);
+    interaction.reply({content:`Here's the current weather info for ${stuffWeCareAbout.location.place}, ${stuffWeCareAbout.location.state}`, embeds:[embed]})
 }
 
 exports.addSong = async (song, serverQueue, songs = null, interaction, hasAlreadyCalledYouTube) => {

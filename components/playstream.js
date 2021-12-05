@@ -1,21 +1,34 @@
 const { createAudioPlayer, createAudioResource, StreamType, AudioPlayerStatus} = require('@discordjs/voice');
 const ytdl = require('discord-ytdl-core');
 //Await on the opus stream and then play said resource
-exports.playStream = async (url, serverQueue) =>  {
+exports.playStream = async (url, serverQueue, retry = 0) =>  {
     //Init values
-    const player = createAudioPlayer(),
+    try {
+        const player = createAudioPlayer(),
          {connection} = serverQueue,
           file = await ytdl(url, {
             filter: 'audioonly',
             opusEncoded: true
         }),
         resource = await createAudioResource(file, {
-        inputType: StreamType.Opus
+            inputType: StreamType.Opus
         });
-    //init
-    console.log('got rescource')
-    player.play(resource);
-    connection.subscribe(player);
+        //init
+        console.log('got rescource')
+        player.play(resource);
+        connection.subscribe(player);
+    } catch (err) {
+        if(err){
+            console.warn('ERROR from ytdl', err);
+            retry < 5 ? this.playStream(url, serverQueue, (retry + 1)) : console.warn('------ran out of re-trys-------');
+            if(serverQueue.songs.length > 1){
+                console.log('Trying next song in queue.')
+                serverQueue.songs.shift();
+                let newSong = serverQueue.songs[0]
+                this.playStream(newSong.url, serverQueue, 0)
+            };
+        };
+    };
 
     //listeners
     player.on(AudioPlayerStatus.Buffering, () => {

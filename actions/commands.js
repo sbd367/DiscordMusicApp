@@ -22,6 +22,18 @@ exports.commands  = [
     {
         name: 'list',
         description: 'Use this command to list itmes in the playlist.'
+    },
+    {
+        name: 'weather',
+        description: 'returns current weather information for given zip code',
+        options: [
+            {
+                name: 'zipcode',
+                description: 'Valid US zip code',
+                required: true,
+                type: Constants.ApplicationCommandOptionTypes.STRING
+            }
+        ]
     }
     // {
     //     name: 'player', Shhhh............ soon.
