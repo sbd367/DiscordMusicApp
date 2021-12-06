@@ -123,8 +123,8 @@ client.on('messageCreate', async (message) => {
         await setupState(serverQueue, voiceChannel, message);
         serverQueue = queue.get(message.guild.id);
     }
-    const nounRandomNumber = Math.floor(Math.random() * nouns.length),
-        adjRandomNumber = Math.floor(Math.random() * adjectives.length),
+    const nounRandomNumber = Math.floor(Math.random() * (nouns.length - 1)),
+        adjRandomNumber = Math.floor(Math.random() * (adjectives.length - 1)),
         noun = nouns[nounRandomNumber],
         adjective = adjectives[adjRandomNumber],
         condition = message.content[0] === '+';
