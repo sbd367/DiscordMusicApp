@@ -14,9 +14,33 @@ exports.playStream = async (url, serverQueue, retry = 0) =>  {
             inputType: StreamType.Opus
         });
         //init
-        console.log('got rescource')
         player.play(resource);
         connection.subscribe(player);
+        //listeners
+        player.on(AudioPlayerStatus.Buffering, () => {
+            console.log('Buffering')
+        })
+        player.on(AudioPlayerStatus.Paused, () => {
+            console.log('paused');
+        })
+        player.on(AudioPlayerStatus.Playing, () => console.log('playing audio'))
+        player.on(AudioPlayerStatus.AutoPaused, () => {
+            player.play(resource);
+            console.log('Auto paused - bad response from ytdl');
+        })
+        player.on('error', err => {
+            console.warn(err);
+        });
+
+        //if the queue is at its last item just end connection
+        //otherwise play the next song in the queue.
+        player.on(AudioPlayerStatus.Idle, () => {
+            if(typeof(serverQueue) === undefined) return connection.destroy();
+            serverQueue.songs.shift();
+            let newSong = serverQueue.songs[0]
+            return serverQueue.songs.length ? this.playStream(newSong.url, serverQueue) : connection.destroy();
+        });
+        return serverQueue;
     } catch (err) {
         if(err){
             console.warn('ERROR from ytdl', err);
@@ -27,33 +51,7 @@ exports.playStream = async (url, serverQueue, retry = 0) =>  {
                 let newSong = serverQueue.songs[0]
                 this.playStream(newSong.url, serverQueue, 0)
             };
+            throw new Error(err);
         };
     };
-
-    //listeners
-    player.on(AudioPlayerStatus.Buffering, () => {
-        console.log('Buffering')
-    })
-    player.on(AudioPlayerStatus.Paused, () => {
-        console.log('paused');
-    })
-    player.on(AudioPlayerStatus.Playing, () => console.log('playing audio'))
-    player.on(AudioPlayerStatus.AutoPaused, () => {
-        player.play(resource);
-        console.log('Auto paused - bad response from ytdl');
-    })
-    player.on('error', err => {
-        console.warn(err);
-    });
-
-    //if the queue is at its last item just end connection
-    //otherwise play the next song in the queue.
-    player.on(AudioPlayerStatus.Idle, () => {
-        if(typeof(serverQueue) === undefined) return connection.destroy();
-        serverQueue.songs.shift();
-        let newSong = serverQueue.songs[0]
-        return serverQueue.songs.length ? this.playStream(newSong.url, serverQueue) : connection.destroy();
-    })
-
-    return serverQueue;
 }

@@ -82,6 +82,10 @@ client.on('interactionCreate', async (interaction) => {
         serverQueue = queue.get(interaction.guild.id);
     }
 
+    if (checkFor('weather')){
+        return await execute.useWeather(interaction, serverQueue);
+    }
+
     //member needs to be in a voice channel
     if (!voiceChannel) {
         return await interaction.reply(
@@ -101,8 +105,6 @@ client.on('interactionCreate', async (interaction) => {
     } else if (checkFor(' -h')) {
         msg += 'you can play youtube songs via \'+play {youtube link}\'\nyou can also skip songs or stop everthing all together by typing either \'+skip\' or \'+stop\'.';
         return await interaction.reply(noNeedToShowChat(msg));
-    } else if (checkFor('weather')){
-        return await execute.useWeather(interaction, serverQueue);
     } else {
         msg += 'You need to enter a valid command! - type \'+ -h\''
         return await interaction.reply(noNeedToShowChat(msg));

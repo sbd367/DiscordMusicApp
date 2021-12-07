@@ -27,7 +27,7 @@ const noNeedToShowChat = content => {
     return {content: content, ephemeral: true}
 }
 
-//function used to build a list of current songs
+//function used to build a list of current songs - ALL OF THIS IS TO BE DEPRICATED 
 const displayList = serverQueue =>{
     //shows the list of songs in the queue
     let separator = '\n',
@@ -55,6 +55,7 @@ exports.runAction = async (interaction, serverQueue, voiceChannel) => {
         );
     }
     //update the user that we're looking into it
+    
     if(!serverQueue.songs.length || !serverQueue.connection){
        await this.joinTheChannel(voiceChannel, serverQueue, interaction)
     }
@@ -69,10 +70,12 @@ exports.runAction = async (interaction, serverQueue, voiceChannel) => {
 
     //run search and play song
     if(searchArr.length > 1 || !searchArr[0].includes('youtube.com/')){
+        console.log(interaction)
+        interaction.reply({content: 'Working on that for you...', ephemeral: true})
         const searchString = searchArr.join(' '),
             newSongData = await youtubeRequest.videoRequest(searchString);
         //add new songs to the queue
-        await addNewSong(newSongData, serverQueue, null, true);
+        await addNewSong(newSongData, serverQueue, null, interaction, true);
         let newSong = serverQueue.songs[0];
         //if there's more than one song already in the queue just add the song else start playstream
         serverQueue.songs.length === 1 ? stream.playStream(newSong.url, serverQueue) : null;
@@ -150,7 +153,7 @@ exports.useWeather = async (interaction, serverQueue) => {
     weatherData = await weatherService.getByZipCode(zip);
     embed = new MessageEmbed()
         .setColor('DARKER_GREY')
-        .setTitle(`Current Temp: ${weatherData.actual_temp} °F\nFeels like: ${weatherData.feels_like} °F\nHumidity: ${weatherData.humidity}%\nUV index: ${stuffWeCareAbout.uv_ind}`)
+        .setTitle(`Current Temp: ${weatherData.actual_temp} °F\nFeels like: ${weatherData.feels_like} °F\nHumidity: ${weatherData.humidity}%\nUV index: ${weatherData.uv_ind}`)
         .setAuthor(`It's currently: ${weatherData.condition.type}`, `https:${weatherData.condition.icon}`);
     interaction.reply({content:`Here's the current weather info for ${weatherData.location.place}, ${weatherData.location.state}`, embeds:[embed]})
 }
@@ -174,15 +177,9 @@ exports.addSong = async (song, serverQueue, songs = null, interaction, hasAlread
         if(type === 'playlist'){
             data.forEach((el, ind) => {
                 let {title, url, thumbnail} = el;
-                    //handle first song embed logic
-                    if(ind === 0){ 
-                        //TODO: add thumbnail to first result
-                        embed.setColor('DARKER_GREY')
-                        .setTitle(`Current Queue:`)
-                        .setAuthor(`Now playing: ${title}`, thumbnail.url);
-                } else {
-                    embed.addField(title, url)
-                }
+                //handle song embed logic
+                ind === 0 ? embed.setColor('DARKER_GREY').setTitle(`Current Queue:`).setAuthor(`Now playing: ${title}`, thumbnail.url) :
+                            embed.addField(title, url);
             })
             return embed;
 
@@ -221,7 +218,7 @@ exports.stop = async (interaction, serverQueue) => {
         return await interaction.reply('Okay, I\'ll shut up');;
     };
     //if the guild has no songs listed
-    //set, just destroy the connection.
+    //just destroy the connection.
     //else set the queue to empty arry and destroy the connection
     if(serverQueue.songs.length === 0){
         return closeConnection(interaction, serverQueue)
@@ -275,7 +272,8 @@ exports.skip = async (interaction, serverQueue) => {
         serverQueue.songs.shift();
         stream.playStream(serverQueue.songs[0].url, serverQueue);
         return await interaction.reply({
-            content: `I agree... that song is trash...\nHere are the remaing track's in the list:\n${displayList(serverQueue)}`,
+            content: `I agree... that song is trash...\nHere are the remaing track's in the list:`, 
+            embeds: [await baseMessageEmbed(serverQueue.songs, 'playlist')],
             ephemeral: true
         });
     } else {
