@@ -41,6 +41,7 @@ const setupState = (serverQueue, voiceChannel, interaction) => {
 
 //log different status levels
 client.once('ready', () => {
+    //TODO: add greeting message to set state
     console.log('-----------We\'re good to go---------------')
 });
 client.once('reconnecting', () => {
@@ -51,6 +52,21 @@ client.once('disconnect', () => {
 });
 
 client.on('interactionCreate', async (interaction) => {
+
+    if(interaction.isSelectMenu()){
+        console.log(interaction.values);
+        let serverQueue = queue.get(interaction.guild.id);
+        if(interaction.values.length){
+            const val = interaction.values[0];
+            if(serverQueue.songs.length){
+                interaction.update({content: `Now Playing: ${serverQueue.songs[val].title}`, components: []})
+                return await execute.playFromList(serverQueue, val);
+            } else {
+                interaction.reply({content: 'No songs to play'})
+            }
+        }
+
+    }
     const noNeedToShowChat = content => {
         return { content: content, ephemeral: true }
     };
@@ -79,6 +95,10 @@ client.on('interactionCreate', async (interaction) => {
     if (!serverQueue || !serverQueue.songs) {
         await setupState(serverQueue, voiceChannel, interaction);
         serverQueue = queue.get(interaction.guild.id);
+    }
+
+    if (checkFor('weather')){
+        return await execute.useWeather(interaction, serverQueue);
     }
 
     //member needs to be in a voice channel
@@ -120,8 +140,8 @@ client.on('messageCreate', async (message) => {
         await setupState(serverQueue, voiceChannel, message);
         serverQueue = queue.get(message.guild.id);
     }
-    const nounRandomNumber = Math.floor(Math.random() * nouns.length),
-        adjRandomNumber = Math.floor(Math.random() * adjectives.length),
+    const nounRandomNumber = Math.floor(Math.random() * (nouns.length - 1)),
+        adjRandomNumber = Math.floor(Math.random() * (adjectives.length - 1)),
         noun = nouns[nounRandomNumber],
         adjective = adjectives[adjRandomNumber],
         condition = message.content[0] === '+';

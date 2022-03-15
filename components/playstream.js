@@ -1,48 +1,57 @@
-const { createAudioPlayer, createAudioResource, StreamType, AudioPlayerStatus} = require('@discordjs/voice');
-const ytdl = require('discord-ytdl-core');
+const { createAudioPlayer, createAudioResource, NoSubscriberBehavior, StreamType, AudioPlayerStatus} = require('@discordjs/voice');
+const ytdl = require('play-dl');
 //Await on the opus stream and then play said resource
-exports.playStream = async (url, serverQueue) =>  {
+exports.playStream = async (url, serverQueue, retry = 0) =>  {
     //Init values
-    console.log('called for resource')
-    const player = createAudioPlayer(),
-         {connection} = serverQueue,
-          file = await ytdl(url, {
-            filter: 'audioonly',
-            opusEncoded: true
-        }),
-          resource = await createAudioResource(file, {
-            inputType: StreamType.Opus
-          });
-    //init
-    console.log('got rescource')
-    player.play(resource);
-    connection.subscribe(player);
-
-    //listeners
-    player.on(AudioPlayerStatus.Buffering, () => {
-        console.log('Buffering')
-    })
-    player.on(AudioPlayerStatus.Paused, () => {
-        console.log('paused');
-    })
-    player.on(AudioPlayerStatus.Playing, () => console.log('playing audio'))
-    player.on(AudioPlayerStatus.AutoPaused, () => {
+    try {
+        const {connection} = serverQueue,
+          file = await ytdl.stream(url),
+          resource = await createAudioResource(file.stream, {
+              inputType: file.type
+          }),
+          player = createAudioPlayer({behaviors: {
+            noSubscriber: NoSubscriberBehavior.Play
+          }});
+          console.log(file.type)
+        //init
         player.play(resource);
-        console.log('Auto paused');
-    })
-    player.on('error', err => {
-        console.warn(err);
-    });
+        connection.subscribe(player);
+        //listeners
+        player.on(AudioPlayerStatus.Buffering, () => {
+            console.log('Buffering')
+        })
+        player.on(AudioPlayerStatus.Paused, () => {
+            console.log('paused');
+        })
+        player.on(AudioPlayerStatus.Playing, () => console.log('playing audio'))
+        player.on(AudioPlayerStatus.AutoPaused, () => {
+            player.play(resource);
+            console.log('Auto paused - bad response from ytdl');
+        })
+        player.on('error', err => {
+            console.log(err, 'ERROR: Discord player');
+        });
 
-    //if the queue is at its last item just end connection
-    //otherwise play the next song in the queue.
-    player.on(AudioPlayerStatus.Idle, () => {
-        console.log('its not doing anything', serverQueue)
-        if(typeof(serverQueue) === undefined) return connection.destroy();
-        serverQueue.songs.shift();
-        let newSong = serverQueue.songs[0]
-        return serverQueue.songs.length ? this.playStream(newSong.url, player) : connection.destroy();
-    })
-
-    return serverQueue;
+        //if the queue is at its last item just end connection
+        //otherwise play the next song in the queue.
+        player.on(AudioPlayerStatus.Idle, () => {
+            if(typeof(serverQueue) === undefined) return connection.destroy();
+            serverQueue.songs.shift();
+            let newSong = serverQueue.songs[0]
+            return serverQueue.songs.length ? this.playStream(newSong.url, serverQueue) : connection.destroy();
+        });
+        return serverQueue;
+    } catch (err) {
+        if(err){
+            console.warn('ERROR from ytdl', err);
+            retry < 5 ? this.playStream(url, serverQueue, (retry + 1)) : console.warn('------ran out of re-trys-------');
+            if(serverQueue.songs.length > 1){
+                console.log('Trying next song in queue.')
+                serverQueue.songs.shift();
+                let newSong = serverQueue.songs[0]
+                this.playStream(newSong.url, serverQueue, 0)
+            };
+            throw new Error(err);
+        };
+    };
 }
