@@ -52,6 +52,21 @@ client.once('disconnect', () => {
 });
 
 client.on('interactionCreate', async (interaction) => {
+
+    if(interaction.isSelectMenu()){
+        console.log(interaction.values);
+        let serverQueue = queue.get(interaction.guild.id);
+        if(interaction.values.length){
+            const val = interaction.values[0];
+            if(serverQueue.songs.length){
+                interaction.update({content: `Now Playing: ${serverQueue.songs[val].title}`, components: []})
+                return await execute.playFromList(serverQueue, val);
+            } else {
+                interaction.reply({content: 'No songs to play'})
+            }
+        }
+
+    }
     const noNeedToShowChat = content => {
         return { content: content, ephemeral: true }
     };

@@ -43,6 +43,13 @@ const displayList = serverQueue =>{
     return bs;
 };
 
+exports.playFromList = async (serverQueue, value) => {
+    let {songs} = serverQueue;
+    await stream.playStream(songs[value].url, serverQueue);
+    songs.splice(value, 1);
+    console.log('playstream');
+}
+
 //large container for controlling state 
 //NOTE: the interaction messages are to be defferred outside of this method besides initalization of the interaction reply
 //      followups should be handled in their respective modules, based off of its scoped state (serverQueue, interaction status).
@@ -70,7 +77,6 @@ exports.runAction = async (interaction, serverQueue, voiceChannel) => {
 
     //run search and play song
     if(searchArr.length > 1 || !searchArr[0].includes('youtube.com/')){
-        console.log(interaction)
         interaction.reply({content: 'Working on that for you...', ephemeral: true})
         const searchString = searchArr.join(' '),
             newSongData = await youtubeRequest.videoRequest(searchString);
@@ -157,39 +163,37 @@ exports.useWeather = async (interaction, serverQueue) => {
         .setAuthor(`It's currently: ${weatherData.condition.type}`, `https:${weatherData.condition.icon}`);
     interaction.reply({content:`Here's the current weather info for ${weatherData.location.place}, ${weatherData.location.state}`, embeds:[embed]})
 }
+const baseMessageEmbed = async (type, data) =>{
+    let {title, url, thumbnail} = data,
+        embed = new MessageEmbed();
+
+    if(type === 'playlist'){
+        data.forEach((el, ind) => {
+            let {title, url, thumbnail} = el;
+            //handle song embed logic
+            ind === 0 ? embed.setColor('DARKER_GREY').setTitle(`Current Queue:`).setAuthor(`Now playing: ${title}`, thumbnail.url) :
+                        embed.addField(title, url);
+        })
+        return embed;
+
+    } else if (type === 'single'){
+        return embed.setColor('DARKER_GREY')
+            .setTitle(title)
+            .setURL(url)
+            .setImage(thumbnail.url)
+    }
+};
 
 exports.addSong = async (song, serverQueue, songs = null, interaction, hasAlreadyCalledYouTube) => {
     //Currently this gets hit everytime we call youtube api... this doesnt need to happen.
     if(!hasAlreadyCalledYouTube && typeof(song) === 'string' && song.includes('youtube.com/')){
         //wait on the song results we get back from ytdl
         const songInfo = await ytdl.getInfo(song);
-        console.log(songInfo)
         song = {
             title: songInfo.videoDetails.title,
             url: songInfo.videoDetails.video_url,
         };
     }
-
-    const baseMessageEmbed = async (type, data) =>{
-        let {title, url, thumbnail} = data,
-            embed = new MessageEmbed();
-
-        if(type === 'playlist'){
-            data.forEach((el, ind) => {
-                let {title, url, thumbnail} = el;
-                //handle song embed logic
-                ind === 0 ? embed.setColor('DARKER_GREY').setTitle(`Current Queue:`).setAuthor(`Now playing: ${title}`, thumbnail.url) :
-                            embed.addField(title, url);
-            })
-            return embed;
-
-        } else if (type === 'single'){
-            return embed.setColor('DARKER_GREY')
-                .setTitle(title)
-                .setURL(url)
-                .setImage(thumbnail.url)
-        }
-    };
 
     //Handle weather or not these are playlist results
     if(songs){
@@ -254,7 +258,7 @@ exports.list = async (interaction, serverQueue) => {
         );
 
         console.log(row);
-        return interaction.reply({content: `Here are the remaing track's in the list:`, components: [row]})
+        return interaction.reply({content: `Here are the remaing track's in the list:`, components: [row], fetchReply: true});
     }
 }
 exports.skip = async (interaction, serverQueue) => {

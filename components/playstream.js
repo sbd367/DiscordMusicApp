@@ -1,18 +1,18 @@
-const { createAudioPlayer, createAudioResource, StreamType, AudioPlayerStatus} = require('@discordjs/voice');
-const ytdl = require('discord-ytdl-core');
+const { createAudioPlayer, createAudioResource, NoSubscriberBehavior, StreamType, AudioPlayerStatus} = require('@discordjs/voice');
+const ytdl = require('play-dl');
 //Await on the opus stream and then play said resource
 exports.playStream = async (url, serverQueue, retry = 0) =>  {
     //Init values
     try {
-        const player = createAudioPlayer(),
-         {connection} = serverQueue,
-          file = await ytdl(url, {
-            filter: 'audioonly',
-            opusEncoded: true
-        }),
-        resource = await createAudioResource(file, {
-            inputType: StreamType.Opus
-        });
+        const {connection} = serverQueue,
+          file = await ytdl.stream(url),
+          resource = await createAudioResource(file.stream, {
+              inputType: file.type
+          }),
+          player = createAudioPlayer({behaviors: {
+            noSubscriber: NoSubscriberBehavior.Play
+          }});
+          console.log(file.type)
         //init
         player.play(resource);
         connection.subscribe(player);
@@ -29,7 +29,7 @@ exports.playStream = async (url, serverQueue, retry = 0) =>  {
             console.log('Auto paused - bad response from ytdl');
         })
         player.on('error', err => {
-            console.warn(err);
+            console.log(err, 'ERROR: Discord player');
         });
 
         //if the queue is at its last item just end connection
