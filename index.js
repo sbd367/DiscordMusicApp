@@ -3,6 +3,7 @@ require('dotenv').config();
 const { Client, Intents } = require('discord.js'),
     { nouns, adjectives } = require('./assets/staticData'),
     execute = require('./components/execute'),
+    cron = require('cron'),
     // player = require('./Components/player'), //TODO
     cmds = require('./actions/commands'),
     queue = new Map(),
@@ -42,6 +43,15 @@ const setupState = (serverQueue, voiceChannel, interaction) => {
 //log different status levels
 client.once('ready', () => {
     //TODO: add greeting message to set state
+    let conditions = (channel) => {
+        console.log(channel.filter(chan => chan.type == 'GUILD_TEXT' && chan.rawPosition === 0))
+    }
+    let generalChannel = client.channels.cache.find(channel => channel.name == 'thegeneral');
+    conditions(client.channels.cache);
+    let sheduleMessage = new cron.CronJob('44 15 * * *', () => {
+        execute.useNASA(generalChannel);
+    })
+    sheduleMessage.start();
     console.log('-----------We\'re good to go---------------')
 });
 client.once('reconnecting', () => {

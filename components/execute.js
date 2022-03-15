@@ -1,6 +1,7 @@
 //init constants 
 const {joinVoiceChannel} = require('@discordjs/voice'),
       stream = require('./playstream'),
+      nasaService = require('./nasa-api-service')
       weatherService = require('./weather-api-service'),
       ytdl = require('discord-ytdl-core'),
       youtubeRequest = require('./youtube-search-api'),
@@ -260,6 +261,10 @@ exports.list = async (interaction, serverQueue) => {
         console.log(row);
         return interaction.reply({content: `Here are the remaing track's in the list:`, components: [row], fetchReply: true});
     }
+}
+exports.useNASA = async (channel) => {
+    const photo = await nasaService.getPOTD();
+    channel.send({content: `${photo.hdurl}\n${photo.title}\n${photo.explanation}`});
 }
 exports.skip = async (interaction, serverQueue) => {
     //pre-checks
