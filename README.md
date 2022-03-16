@@ -4,15 +4,17 @@
 The setup here is fairly easy, you will be using your own computer to serve the application when you intend to use the service. 
 The first step is to clone the repository, then navigate to the directory that you had preveously cloned the app.
 
-> Then simply install your local deps by running `npm install` 
+> Install your local deps by running `npm install` 
 
-***You can decide how to handle envrinment variables*** but I like to use [dotenv](https://www.npmjs.com/package/dotenv)
+### There are 6 credendials required to use this app
 
-### There are 3 credendials required to use this app
-
+Add the folling variables to a `.env` file
 1. `YOUTUBE_API_KEY` - Your valid YouTube API key. ([see docs here](https://developers.google.com/youtube/v3))
 2. `DISCORD_TOKEN`
 3. `DISCORD_CLIENT_ID`
+4. `WEATHER_API_KEY`
+5. `NASA_API_KEY`
+6. `RAPID_API_KEY`
 
 > **For items 2 and 3 you can simply add the approptiate credentials for your discord bot.** ([Discord Developer Portal](https://discord.com/developers/applications))
 
