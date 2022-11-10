@@ -12,7 +12,7 @@ exports.playStream = async (url, serverQueue, retry = 0) =>  {
           player = createAudioPlayer({behaviors: {
             noSubscriber: NoSubscriberBehavior.Play
           }});
-          console.log(file.type)
+          console.log("file type", file.type);
         //init
         player.play(resource);
         connection.subscribe(player);
@@ -35,10 +35,11 @@ exports.playStream = async (url, serverQueue, retry = 0) =>  {
         //if the queue is at its last item just end connection
         //otherwise play the next song in the queue.
         player.on(AudioPlayerStatus.Idle, () => {
+            console.log('runs idle')
             if(typeof(serverQueue) === undefined) return connection.destroy();
             serverQueue.songs.shift();
             let newSong = serverQueue.songs[0]
-            return serverQueue.songs.length ? this.playStream(newSong.url, serverQueue) : connection.destroy();
+            return serverQueue.songs.length ? this.playStream(newSong.url, serverQueue) : null;
         });
         return serverQueue;
     } catch (err) {
