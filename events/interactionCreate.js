@@ -19,7 +19,7 @@ const setupState = (serverQueue, voiceChannel, interaction) => {
         commands.create(command);
     });
 
-    console.log('runs');
+    console.log('Setup state:', queueContruct);
     // Setting the queue using our contract
     return queue.set(interaction.guild.id, queueContruct);
 };
@@ -46,13 +46,14 @@ module.exports = {
     };
     //++++++BAN TYCHE+++++
     if (interaction.user.id === process.env.BANNED_TYCHE) {
+        console.log('banning tyche');
         const nounRandomNumber = Math.floor(Math.random() * (nouns.length - 1)),
             adjRandomNumber = Math.floor(Math.random() * (adjectives.length - 1)),
             adjRandomNumber1 = Math.floor(Math.random() * (adjectives.length - 1)),
             noun = nouns[nounRandomNumber],
             adjective = adjectives[adjRandomNumber],
             adjective1 = adjectives[adjRandomNumber1];
-        return interaction.reply(`fuck you tyche... you ${adjective}, ${adjective1}, ${noun}.`)
+        return interaction.reply(`You dont get to use this tyche... you ${adjective}, ${adjective1}, ${noun}.`)
     }
     //++++++++END BAN TYCHE+++++++++++++
 
@@ -61,7 +62,7 @@ module.exports = {
         { commandName, member } = interaction, //pull the commmandName from the interaction.
         voiceChannel = member.voice.channel, //capture voice channel
         checkFor = action => commandName.includes(action), //simple method - used when responding.
-        msg = ''; //Build string
+        msg = ''; //Build string - for simple responses 
 
     if (!interaction.isCommand()) return //needs to be a command.
 
@@ -84,15 +85,14 @@ module.exports = {
 
     //handle actions for each command - reply handled in module by default 
     if (checkFor('play')) {
-        console.log('runs play')
-        return execute.runAction(interaction, serverQueue, voiceChannel); // See: https://github.com/sbd367/DiscordMusicApp/blob/master/Components/execute.js#L15
+        return execute.runAction(interaction, serverQueue, voiceChannel); 
     } else if (checkFor('list')) {
         return execute.list(interaction, serverQueue);
     } else if (checkFor('skip')) {
         return execute.skip(interaction, serverQueue);
     } else if (checkFor('stop')) {
         return execute.stop(interaction, serverQueue);
-    } else if (checkFor(' -h')) {
+    } else if (checkFor('help')) {
         msg += 'you can play youtube songs via \'+play {youtube link}\'\nyou can also skip songs or stop everthing all together by typing either \'+skip\' or \'+stop\'.';
         return interaction.reply(noNeedToShowChat(msg));
     } else {
