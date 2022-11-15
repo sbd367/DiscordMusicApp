@@ -25,7 +25,7 @@ exports.commands  = [
     },
     {
         name: 'weather',
-        description: 'returns current weather information for given zip code',
+        description: 'Returns current weather information for any given zip code',
         options: [
             {
                 name: 'zipcode',
@@ -34,6 +34,10 @@ exports.commands  = [
                 type: Constants.ApplicationCommandOptionTypes.STRING
             }
         ]
+    },
+    {
+        name: 'help',
+        description: 'You look lost...'
     }
     // {
     //     name: 'player', Shhhh............ soon.

@@ -45,6 +45,7 @@ const displayList = serverQueue =>{
 
 exports.playFromList = async (serverQueue, value) => {
     let {songs} = serverQueue;
+    console.log('play from list')
     await stream.playStream(songs[value].url, serverQueue);
     songs.splice(value, 1);
     console.log('playstream');
@@ -54,6 +55,7 @@ exports.playFromList = async (serverQueue, value) => {
 //NOTE: the interaction messages are to be defferred outside of this method besides initalization of the interaction reply
 //      followups should be handled in their respective modules, based off of its scoped state (serverQueue, interaction status).
 exports.runAction = async (interaction, serverQueue, voiceChannel) => {
+    console.log('exec runaction')
     //ensure permissions
     const permissions = voiceChannel.permissionsFor(interaction.client.user);
     if (!permissions.has("CONNECT") || !permissions.has("SPEAK")) {
@@ -82,9 +84,10 @@ exports.runAction = async (interaction, serverQueue, voiceChannel) => {
             newSongData = await youtubeRequest.videoRequest(searchString);
         //add new songs to the queue
         await addNewSong(newSongData, serverQueue, null, interaction, true);
-        let newSong = serverQueue.songs[0];
+        // let newSong = serverQueue.songs[0];
         //if there's more than one song already in the queue just add the song else start playstream
-        serverQueue.songs.length === 1 ? stream.playStream(newSong.url, serverQueue) : null;
+        console.log('more than one song in the queue');
+        // serverQueue.songs.length === 1 ? stream.playStream(newSong.url, serverQueue) : null;
     //handle playlist logiic
     } else if(playlist) {
         const row = new MessageActionRow()
@@ -112,6 +115,7 @@ exports.runAction = async (interaction, serverQueue, voiceChannel) => {
             await interaction.channel.awaitMessageComponent({ max: 1, time: 30000, errors: ['time'] }).then(async (option) => {
                 if(option.customId === 'noThanks'){
                     await addNewSong(arg, serverQueue, null, interaction, false);
+                    console.log('from no thanks')
                     if(serverQueue.songs.length === 1) await stream.playStream(newSong.url, serverQueue);
                     option.update([])
                 } else if (option.customId.includes('youtube.com')){
@@ -120,6 +124,7 @@ exports.runAction = async (interaction, serverQueue, voiceChannel) => {
                         newSongs = await youtubeRequest.listRequest(params);
                     await addNewSong(arg, serverQueue, newSongs, interaction, true);
                     let newSong = serverQueue.songs[0];
+                    console.log('from custom id')
                     if(initialQueue === 0) await stream.playStream(newSong.url, serverQueue);
                 }
                 return option.update({components: []});
@@ -131,9 +136,10 @@ exports.runAction = async (interaction, serverQueue, voiceChannel) => {
             console.warn('error from initial reply', err)
         })
     } else if(searchArr[0].includes('youtube.com/')){
-        await addNewSong(searchArr[0], serverQueue, null, false);
+        await addNewSong(searchArr[0], serverQueue, null, interaction, false);
         let newSong = serverQueue.songs[0];
         //if there's more than one song already in the queue just add the song else start playstream
+        console.log('from more than one song in queue')
         serverQueue.songs.length === 1 ? stream.playStream(newSong.url, serverQueue) : null;
     }
 };
@@ -160,10 +166,11 @@ exports.useWeather = async (interaction, serverQueue) => {
     embed = new MessageEmbed()
         .setColor('DARKER_GREY')
         .setTitle(`Current Temp: ${weatherData.actual_temp} °F\nFeels like: ${weatherData.feels_like} °F\nHumidity: ${weatherData.humidity}%\nUV index: ${weatherData.uv_ind}`)
-        .setAuthor(`It's currently: ${weatherData.condition.type}`, `https:${weatherData.condition.icon}`);
+        .setAuthor({name: `It's currently: ${weatherData.condition.type}`, iconURL: `https:${weatherData.condition.icon}`});
     interaction.reply({content:`Here's the current weather info for ${weatherData.location.place}, ${weatherData.location.state}`, embeds:[embed]})
 }
 const baseMessageEmbed = async (type, data) =>{
+    console.log(data)
     let {title, url, thumbnail} = data,
         embed = new MessageEmbed();
 
@@ -171,7 +178,7 @@ const baseMessageEmbed = async (type, data) =>{
         data.forEach((el, ind) => {
             let {title, url, thumbnail} = el;
             //handle song embed logic
-            ind === 0 ? embed.setColor('DARKER_GREY').setTitle(`Current Queue:`).setAuthor(`Now playing: ${title}`, thumbnail.url) :
+            ind === 0 ? embed.setColor('DARKER_GREY').setTitle(`Current Queue:`).setAuthor({name: `Now playing: ${title}`, iconURL: thumbnail.url}) :
                         embed.addField(title, url);
         })
         return embed;
@@ -189,9 +196,11 @@ exports.addSong = async (song, serverQueue, songs = null, interaction, hasAlread
     if(!hasAlreadyCalledYouTube && typeof(song) === 'string' && song.includes('youtube.com/')){
         //wait on the song results we get back from ytdl
         const songInfo = await ytdl.getInfo(song);
+        // console.log(songInfo)
         song = {
             title: songInfo.videoDetails.title,
             url: songInfo.videoDetails.video_url,
+            thumbnail: songInfo.thumbnail_url
         };
     }
 
@@ -201,12 +210,14 @@ exports.addSong = async (song, serverQueue, songs = null, interaction, hasAlread
         interaction.editReply({content: 'I\'ll go ahead and get those added for ya.', embeds: [await baseMessageEmbed('playlist', serverQueue.songs)], ephemeral: true});
     } else {
         serverQueue.songs.push(song);
+        console.log('edit reply')
         interaction.editReply({content: `Alright, I've added ${song.title} to the queue.`, embeds:[await baseMessageEmbed('single', song)], ephemeral: true});
     }
 
     //if this is the first song getting added to the playlist then start the stream
     let newSong = serverQueue.songs[0];
     if(serverQueue.songs.length === 1){
+        console.log('first song');
         await stream.playStream(newSong.url, serverQueue);
     }
 }
@@ -257,7 +268,6 @@ exports.list = async (interaction, serverQueue) => {
             selectEl.addOptions(bArr)
         );
 
-        console.log(row);
         return interaction.reply({content: `Here are the remaing track's in the list:`, components: [row], fetchReply: true});
     }
 }
@@ -274,6 +284,7 @@ exports.skip = async (interaction, serverQueue) => {
     //send message and change stream to the next song in the queue.
     if(serverQueue.songs.length > 1){
         serverQueue.songs.shift();
+        console.log('not first song')
         stream.playStream(serverQueue.songs[0].url, serverQueue);
         return await interaction.reply({
             content: `I agree... that song is trash...\nHere are the remaing track's in the list:`, 
