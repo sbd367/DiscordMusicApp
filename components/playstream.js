@@ -3,6 +3,7 @@ const ytdl = require('play-dl');
 //Await on the opus stream and then play said resource
 exports.playStream = async (url, serverQueue, retry = 0) =>  {
     //Init values
+    console.log(url)
     try {
         const {connection} = serverQueue,
           file = await ytdl.stream(url),
@@ -14,6 +15,7 @@ exports.playStream = async (url, serverQueue, retry = 0) =>  {
           }});
           console.log("file type", file.type);
         //init
+        console.log(connection)
         player.play(resource);
         connection.subscribe(player);
         //listeners

@@ -88,6 +88,8 @@ module.exports = {
         return execute.runAction(interaction, serverQueue, voiceChannel); 
     } else if (checkFor('list')) {
         return execute.list(interaction, serverQueue);
+    } else if (checkFor('mood')) {
+        return execute.mood(interaction, serverQueue, voiceChannel);
     } else if (checkFor('skip')) {
         return execute.skip(interaction, serverQueue);
     } else if (checkFor('stop')) {

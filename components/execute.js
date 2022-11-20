@@ -49,7 +49,23 @@ exports.playFromList = async (serverQueue, value) => {
     await stream.playStream(songs[value].url, serverQueue);
     songs.splice(value, 1);
     console.log('playstream');
-}
+};
+
+exports.mood = async (interaction, serverQueue, voiceChannel) => {
+    console.log('runs');
+    if(!serverQueue.songs.length || !serverQueue.connection){
+        await this.joinTheChannel(voiceChannel, serverQueue, interaction)
+    }
+    let initialQueue = serverQueue.songs.length,
+        addNewSong = async (song, serverQueue, songs = null, interaction = interaction, hasAlreadyCalledYouTube) => await this.addSong(song, serverQueue, songs, interaction, hasAlreadyCalledYouTube);
+    const args = interaction.options.getString('mood') ? interaction.options.getString('mood') : '',
+        newSongs = await youtubeRequest.mood(args);
+    console.log(newSongs)
+    await addNewSong(args, serverQueue, newSongs, interaction, true);
+    let newSong = serverQueue.songs[0];
+    console.log('from mood')
+    if(initialQueue === 0) await stream.playStream(newSong.url, serverQueue);
+};  
 
 //large container for controlling state 
 //NOTE: the interaction messages are to be defferred outside of this method besides initalization of the interaction reply
@@ -158,7 +174,7 @@ exports.joinTheChannel = async (voiceChannel, serverQueue, interaction) => {
         console.warn('ERROR:', err);
         return await interaction.reply(err);
     }
-}
+};
 
 exports.useWeather = async (interaction, serverQueue) => {
     const zip = interaction.options.getString('zipcode'),
@@ -168,7 +184,8 @@ exports.useWeather = async (interaction, serverQueue) => {
         .setTitle(`Current Temp: ${weatherData.actual_temp} °F\nFeels like: ${weatherData.feels_like} °F\nHumidity: ${weatherData.humidity}%\nUV index: ${weatherData.uv_ind}`)
         .setAuthor({name: `It's currently: ${weatherData.condition.type}`, iconURL: `https:${weatherData.condition.icon}`});
     interaction.reply({content:`Here's the current weather info for ${weatherData.location.place}, ${weatherData.location.state}`, embeds:[embed]})
-}
+};
+
 const baseMessageEmbed = async (type, data) =>{
     console.log(data)
     let {title, url, thumbnail} = data,
@@ -178,6 +195,7 @@ const baseMessageEmbed = async (type, data) =>{
         data.forEach((el, ind) => {
             let {title, url, thumbnail} = el;
             //handle song embed logic
+            console.log(el)
             ind === 0 ? embed.setColor('DARKER_GREY').setTitle(`Current Queue:`).setAuthor({name: `Now playing: ${title}`, iconURL: thumbnail.url}) :
                         embed.addField(title, url);
         })
@@ -207,10 +225,10 @@ exports.addSong = async (song, serverQueue, songs = null, interaction, hasAlread
     //Handle weather or not these are playlist results
     if(songs){
         serverQueue.songs = serverQueue.songs.concat(songs);
-        interaction.editReply({content: 'I\'ll go ahead and get those added for ya.', embeds: [await baseMessageEmbed('playlist', serverQueue.songs)], ephemeral: true});
+        interaction.reply({content: 'I\'ll go ahead and get those added for ya.', embeds: [await baseMessageEmbed('playlist', serverQueue.songs)], ephemeral: true});
     } else {
         serverQueue.songs.push(song);
-        console.log('edit reply')
+        console.log(song);
         interaction.editReply({content: `Alright, I've added ${song.title} to the queue.`, embeds:[await baseMessageEmbed('single', song)], ephemeral: true});
     }
 
