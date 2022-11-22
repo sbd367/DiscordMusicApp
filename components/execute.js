@@ -195,7 +195,6 @@ const baseMessageEmbed = async (type, data) =>{
         data.forEach((el, ind) => {
             let {title, url, thumbnail} = el;
             //handle song embed logic
-            console.log(el)
             ind === 0 ? embed.setColor('DARKER_GREY').setTitle(`Current Queue:`).setAuthor({name: `Now playing: ${title}`, iconURL: thumbnail.url}) :
                         embed.addField(title, url);
         })
