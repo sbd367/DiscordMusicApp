@@ -51,6 +51,7 @@ exports.playFromList = async (serverQueue, value) => {
     console.log('playstream');
 };
 
+
 exports.mood = async (interaction, serverQueue, voiceChannel) => {
     console.log('runs');
     if(!serverQueue.songs.length || !serverQueue.connection){
@@ -187,7 +188,6 @@ exports.useWeather = async (interaction, serverQueue) => {
 };
 
 const baseMessageEmbed = async (type, data) =>{
-    console.log(data)
     let {title, url, thumbnail} = data,
         embed = new MessageEmbed();
 
@@ -302,7 +302,6 @@ exports.skip = async (interaction, serverQueue) => {
     //send message and change stream to the next song in the queue.
     if(serverQueue.songs.length > 1){
         serverQueue.songs.shift();
-        console.log('not first song')
         stream.playStream(serverQueue.songs[0].url, serverQueue);
         return await interaction.reply({
             content: `I agree... that song is trash...\nHere are the remaing track's in the list:`, 

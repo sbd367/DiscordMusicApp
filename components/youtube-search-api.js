@@ -38,7 +38,7 @@ const listRequest = async playlistInfo => {
 };
 
 const mood = async mood => {
-    console.log(mood + ' music')
+    console.log(`searching for ${mood} music.`)
     let reqParams = {
         method: 'GET',
         accept: '*/*',
