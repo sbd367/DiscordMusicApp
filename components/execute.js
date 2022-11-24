@@ -1,6 +1,7 @@
 //init constants 
 const {joinVoiceChannel} = require('@discordjs/voice'),
       stream = require('./playstream'),
+      {noNeedToShowChat, baseMessageEmbed, selection} = require('./helpers'),
       weatherService = require('./weather-api-service'),
       ytdl = require('discord-ytdl-core'),
       youtubeRequest = require('./youtube-search-api'),
@@ -22,26 +23,6 @@ const buildList = url => {
     return bObj;
 }
 
-//only display to the user
-const noNeedToShowChat = content => {
-    return {content: content, ephemeral: true}
-}
-
-//function used to build a list of current songs - ALL OF THIS IS TO BE DEPRICATED 
-const displayList = serverQueue =>{
-    //shows the list of songs in the queue
-    let separator = '\n',
-        bs = '';
-    //don't show the curent result and build string to display to user
-    serverQueue.songs.map((song, ind) => {
-        if(ind === 0){
-            bs = 'Current: '
-        }
-        bs+=song.title+separator
-    })
-    // return the built string
-    return bs;
-};
 
 exports.playFromList = async (serverQueue, value) => {
     let {songs} = serverQueue;
@@ -71,7 +52,7 @@ exports.mood = async (interaction, serverQueue, voiceChannel) => {
 //large container for controlling state 
 //NOTE: the interaction messages are to be defferred outside of this method besides initalization of the interaction reply
 //      followups should be handled in their respective modules, based off of its scoped state (serverQueue, interaction status).
-exports.runAction = async (interaction, serverQueue, voiceChannel) => {
+exports.play = async (interaction, serverQueue, voiceChannel) => {
     console.log('exec runaction')
     //ensure permissions
     const permissions = voiceChannel.permissionsFor(interaction.client.user);
@@ -101,11 +82,7 @@ exports.runAction = async (interaction, serverQueue, voiceChannel) => {
             newSongData = await youtubeRequest.videoRequest(searchString);
         //add new songs to the queue
         await addNewSong(newSongData, serverQueue, null, interaction, true);
-        // let newSong = serverQueue.songs[0];
-        //if there's more than one song already in the queue just add the song else start playstream
-        console.log('more than one song in the queue');
-        // serverQueue.songs.length === 1 ? stream.playStream(newSong.url, serverQueue) : null;
-    //handle playlist logiic
+    //handle playlist logic
     } else if(playlist) {
         const row = new MessageActionRow()
             .addComponents(
@@ -187,27 +164,6 @@ exports.useWeather = async (interaction, serverQueue) => {
     interaction.reply({content:`Here's the current weather info for ${weatherData.location.place}, ${weatherData.location.state}`, embeds:[embed]})
 };
 
-const baseMessageEmbed = async (type, data) =>{
-    let {title, url, thumbnail} = data,
-        embed = new MessageEmbed();
-
-    if(type === 'playlist'){
-        data.forEach((el, ind) => {
-            let {title, url, thumbnail} = el;
-            //handle song embed logic
-            ind === 0 ? embed.setColor('DARKER_GREY').setTitle(`Current Queue:`).setAuthor({name: `Now playing: ${title}`, iconURL: thumbnail.url}) :
-                        embed.addField(title, url);
-        })
-        return embed;
-
-    } else if (type === 'single'){
-        return embed.setColor('DARKER_GREY')
-            .setTitle(title)
-            .setURL(url)
-            .setImage(thumbnail.url)
-    }
-};
-
 exports.addSong = async (song, serverQueue, songs = null, interaction, hasAlreadyCalledYouTube) => {
     //Currently this gets hit everytime we call youtube api... this doesnt need to happen.
     if(!hasAlreadyCalledYouTube && typeof(song) === 'string' && song.includes('youtube.com/')){
@@ -274,21 +230,17 @@ exports.list = async (interaction, serverQueue) => {
         )
         return interaction.reply({content: 'Looks like there isn\'t anything in here...', components: [row]});
     } else {
-        let bArr = [];
-        serverQueue.songs.forEach((el, ind) => {
-            let bObj = {}
-            bObj.label = el.title; bObj.description = 'Click to play'; bObj.value = String(ind);
-            bArr.push(bObj);
+        let comp = selection(serverQueue, {customId: 'list-select', placeHolder: 'Pick a song...'});
+        return await interaction.reply({
+            content: `Here are the remaing track's in the list:`, 
+            components: [comp],
+            ephemeral: true,
+            fetchReply: true
         });
-
-        row.addComponents(
-            selectEl.addOptions(bArr)
-        );
-
-        return interaction.reply({content: `Here are the remaing track's in the list:`, components: [row], fetchReply: true});
     }
 }
 exports.skip = async (interaction, serverQueue) => {
+    console.log("FINALLY")
     //pre-checks
     const noNoConditionals = !serverQueue || 
         serverQueue.songs === [] || 
@@ -302,12 +254,17 @@ exports.skip = async (interaction, serverQueue) => {
     if(serverQueue.songs.length > 1){
         serverQueue.songs.shift();
         stream.playStream(serverQueue.songs[0].url, serverQueue);
+        baseMessageEmbed(serverQueue.songs, 'playlist').then(res => {
+            console.log(res)
+        })
         return await interaction.reply({
             content: `I agree... that song is trash...\nHere are the remaing track's in the list:`, 
-            embeds: [await baseMessageEmbed(serverQueue.songs, 'playlist')],
+            embeds: [await baseMessageEmbed('playlist', serverQueue.songs)],
             ephemeral: true
         });
-    } else {
+    } else if(serverQueue.songs.length) {
        return await exports.stop(interaction, serverQueue);
+    } else {
+        interaction.reply('There\'s no music playing')
     }
 };
