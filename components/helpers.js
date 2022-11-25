@@ -1,4 +1,6 @@
-const { MessageActionRow, MessageButton, MessageEmbed, MessageSelectMenu } = require('discord.js');
+const { StreamType } = require('@discordjs/voice');
+const { MessageActionRow, MessageButton, MessageEmbed, MessageSelectMenu } = require('discord.js'),
+stream = require('./playstream');
 //function used to build a list of current songs - ALL OF THIS IS TO BE DEPRICATED
 exports.displayList = serverQueue =>{
     //shows the list of songs in the queue
@@ -14,6 +16,36 @@ exports.displayList = serverQueue =>{
     // return the built string
     return bs;
 };
+
+exports.addSong = async (song, serverQueue, songs = null, interaction, hasAlreadyCalledYouTube) => {
+    //Currently this gets hit everytime we call youtube api... this doesnt need to happen.
+    if(!hasAlreadyCalledYouTube && typeof(song) === 'string' && song.includes('youtube.com/')){
+        //wait on the song results we get back from ytdl
+        const songInfo = await ytdl.getInfo(song);
+        // console.log(songInfo)
+        song = {
+            title: songInfo.videoDetails.title,
+            url: songInfo.videoDetails.video_url,
+            thumbnail: songInfo.thumbnail_url
+        };
+    }
+
+    //Handle weather or not these are playlist results - respond
+    if(songs){
+        serverQueue.songs = serverQueue.songs.concat(songs);
+        interaction.reply({content: 'I\'ll go ahead and get those added for ya.', embeds: [await this.baseMessageEmbed('playlist', serverQueue.songs)], ephemeral: true});
+    } else {
+        serverQueue.songs.push(song);
+        interaction.editReply({content: `Alright, I've added ${song.title} to the queue.`, embeds: [await this.baseMessageEmbed('single', song)], ephemeral: true});
+    }
+
+    //if this is the first song getting added to the playlist then start the stream
+    let newSong = serverQueue.songs[0];
+    if(serverQueue.songs.length === 1){
+        console.log('first song');
+        await stream.playStream(newSong.url, serverQueue);
+    }
+}
 
 //data will be... customId, placeHolder. 
 exports.selection = (serverQueue, data) => {
@@ -37,7 +69,6 @@ exports.selection = (serverQueue, data) => {
 exports.baseMessageEmbed = async (type, data) =>{
     let {title, url, thumbnail} = data,
         embed = new MessageEmbed();
-    console.log(data)
     if(type === 'playlist'){
         data.forEach((el, ind) => {
             let {title, url, thumbnail} = el;
@@ -48,10 +79,12 @@ exports.baseMessageEmbed = async (type, data) =>{
         return embed;
 
     } else if (type === 'single'){
-        return embed.setColor('DARKER_GREY')
+        embed.setColor('DARKER_GREY')
             .setTitle(title)
             .setURL(url)
             .setImage(thumbnail.url)
+            console.log(embed)
+        return embed;
     }
 };
 
