@@ -1,28 +1,8 @@
 //setup constants 
-const execute = require('../components/execute'), queue = new Map(), {Client} = require('discord.js'), cmds = require('../actions/commands');
-
-const setupState = (serverQueue, voiceChannel, interaction) => {
-    //new stuff for state mangmt...
-    const queueContruct = {
-        textChannel: serverQueue ? serverQueue.textChannel : null,
-        voiceChannel: voiceChannel,
-        connection: null,
-        songs: [],
-        volume: 4,
-        playing: false,
-    }, 
-    gId = interaction.guild.id,
-    guild = interaction.guild,
-    commands = guild ? guild?.commands : Client?.commands;
-
-    cmds.commands.forEach(command => {
-        commands.create(command);
-    });
-
-    console.log('Setup state:', queueContruct);
-    // Setting the queue using our contract
-    return queue.set(interaction.guild.id, queueContruct);
-};
+const execute = require('../components/execute'), {Client} = require('discord.js'), 
+    cmds = require('../actions/commands');
+const {setupState} = require('./common');
+let {queue} = require('../state/songQueue');
 
 module.exports = {
     name: 'interactionCreate',
@@ -84,21 +64,17 @@ module.exports = {
     }
 
     //handle actions for each command - reply handled in module by default 
-    if (checkFor('play')) {
-        return execute.runAction(interaction, serverQueue, voiceChannel); 
-    } else if (checkFor('list')) {
-        return execute.list(interaction, serverQueue);
-    } else if (checkFor('skip')) {
-        return execute.skip(interaction, serverQueue);
-    } else if (checkFor('stop')) {
-        return execute.stop(interaction, serverQueue);
-    } else if (checkFor('help')) {
-        msg += 'you can play youtube songs via \'+play {youtube link}\'\nyou can also skip songs or stop everthing all together by typing either \'+skip\' or \'+stop\'.';
-        return interaction.reply(noNeedToShowChat(msg));
-    } else {
-        msg += 'You need to enter a valid command! - type \'+ -h\''
-        return interaction.reply(noNeedToShowChat(msg));
-    }
+    const {commands} = require('../actions/commands');
+    for(let cmdInd in commands){
+        let curCommand = commands[cmdInd],
+            checkCmd = checkFor(curCommand.name);
+        if(checkCmd){
+            let commandName = curCommand.name;
+            console.log(commandName)
+            return execute[commandName](interaction, serverQueue, voiceChannel);
+        };
+    };
+
     //todo: add in player component
     // if(checkFor('player')){
     //     return await player.startUp(interaction, serverQueue)

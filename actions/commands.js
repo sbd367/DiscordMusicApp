@@ -12,6 +12,17 @@ exports.commands  = [
         }]
     },
     {
+        name: 'mood',
+        description: 'Use this command to play music with a given mood',
+        options: [
+        {
+            name: 'mood',
+            description: 'How ya feeln?',
+            required: true,
+            type: Constants.ApplicationCommandOptionTypes.STRING
+        }]
+    },
+    {
         name: 'skip',
         description: 'Use this command to skip itmes in the playlist.'
     },

@@ -1,6 +1,9 @@
 //init constants 
 const {joinVoiceChannel} = require('@discordjs/voice'),
       stream = require('./playstream'),
+      {noNeedToShowChat, 
+        baseMessageEmbed, 
+        selection, addSong} = require('./helpers'),
       weatherService = require('./weather-api-service'),
       ytdl = require('discord-ytdl-core'),
       youtubeRequest = require('./youtube-search-api'),
@@ -22,26 +25,6 @@ const buildList = url => {
     return bObj;
 }
 
-//only display to the user
-const noNeedToShowChat = content => {
-    return {content: content, ephemeral: true}
-}
-
-//function used to build a list of current songs - ALL OF THIS IS TO BE DEPRICATED 
-const displayList = serverQueue =>{
-    //shows the list of songs in the queue
-    let separator = '\n',
-        bs = '';
-    //don't show the curent result and build string to display to user
-    serverQueue.songs.map((song, ind) => {
-        if(ind === 0){
-            bs = 'Current: '
-        }
-        bs+=song.title+separator
-    })
-    // return the built string
-    return bs;
-};
 
 exports.playFromList = async (serverQueue, value) => {
     let {songs} = serverQueue;
@@ -49,13 +32,27 @@ exports.playFromList = async (serverQueue, value) => {
     await stream.playStream(songs[value].url, serverQueue);
     songs.splice(value, 1);
     console.log('playstream');
-}
+};
+
+
+exports.mood = async (interaction, serverQueue, voiceChannel) => {
+    console.log('runs');
+    if(!serverQueue.songs.length || !serverQueue.connection){
+        await this.joinTheChannel(voiceChannel, serverQueue, interaction)
+    }
+    let initialQueue = serverQueue.songs.length,
+        args = interaction.options.getString('mood') ? interaction.options.getString('mood') : '',
+        newSongs = await youtubeRequest.mood(args);
+    await addSong(args, serverQueue, newSongs, interaction, true);
+    let newSong = serverQueue.songs[0];
+    if(initialQueue === 0) await stream.playStream(newSong.url, serverQueue);
+};  
 
 //large container for controlling state 
 //NOTE: the interaction messages are to be defferred outside of this method besides initalization of the interaction reply
 //      followups should be handled in their respective modules, based off of its scoped state (serverQueue, interaction status).
-exports.runAction = async (interaction, serverQueue, voiceChannel) => {
-    console.log('exec runaction')
+exports.play = async (interaction, serverQueue, voiceChannel) => {
+    console.log('----------plays song---------')
     //ensure permissions
     const permissions = voiceChannel.permissionsFor(interaction.client.user);
     if (!permissions.has("CONNECT") || !permissions.has("SPEAK")) {
@@ -74,8 +71,7 @@ exports.runAction = async (interaction, serverQueue, voiceChannel) => {
     //playlist into the queue.
     const arg = interaction.options.getString('search') ? interaction.options.getString('search') : '',
          playlist = arg.includes('list=') ? buildList(arg) : null,
-         searchArr = arg.split(' '),
-         addNewSong = async (song, serverQueue, songs = null, interaction = interaction, hasAlreadyCalledYouTube) => await this.addSong(song, serverQueue, songs, interaction, hasAlreadyCalledYouTube);
+         searchArr = arg.split(' ');
 
     //run search and play song
     if(searchArr.length > 1 || !searchArr[0].includes('youtube.com/')){
@@ -83,19 +79,14 @@ exports.runAction = async (interaction, serverQueue, voiceChannel) => {
         const searchString = searchArr.join(' '),
             newSongData = await youtubeRequest.videoRequest(searchString);
         //add new songs to the queue
-        await addNewSong(newSongData, serverQueue, null, interaction, true);
-        // let newSong = serverQueue.songs[0];
-        //if there's more than one song already in the queue just add the song else start playstream
-        console.log('more than one song in the queue');
-        // serverQueue.songs.length === 1 ? stream.playStream(newSong.url, serverQueue) : null;
-    //handle playlist logiic
+        await addSong(newSongData, serverQueue, null, interaction, true)
+    //handle playlist logic
     } else if(playlist) {
         const row = new MessageActionRow()
             .addComponents(
             new MessageButton()
                 .setCustomId(arg)
-                .setLabel('add All of them')
-                .setStyle('PRIMARY'),
+                .setLabel('add All of them'),
             new MessageButton()
                 .setCustomId('noThanks')
                 .setLabel('No Thanks')
@@ -114,7 +105,7 @@ exports.runAction = async (interaction, serverQueue, voiceChannel) => {
         return interaction.reply({content: msg, embeds: [embed], components: [row], fetchReply: true}).then(async () => {
             await interaction.channel.awaitMessageComponent({ max: 1, time: 30000, errors: ['time'] }).then(async (option) => {
                 if(option.customId === 'noThanks'){
-                    await addNewSong(arg, serverQueue, null, interaction, false);
+                    await addSong(arg, serverQueue, null, interaction, false);
                     console.log('from no thanks')
                     if(serverQueue.songs.length === 1) await stream.playStream(newSong.url, serverQueue);
                     option.update([])
@@ -122,7 +113,7 @@ exports.runAction = async (interaction, serverQueue, voiceChannel) => {
                     const params = buildList(option.customId),
                         initialQueue = serverQueue.songs.length,
                         newSongs = await youtubeRequest.listRequest(params);
-                    await addNewSong(arg, serverQueue, newSongs, interaction, true);
+                    await addSong(arg, serverQueue, newSongs, interaction, true);
                     let newSong = serverQueue.songs[0];
                     console.log('from custom id')
                     if(initialQueue === 0) await stream.playStream(newSong.url, serverQueue);
@@ -136,7 +127,7 @@ exports.runAction = async (interaction, serverQueue, voiceChannel) => {
             console.warn('error from initial reply', err)
         })
     } else if(searchArr[0].includes('youtube.com/')){
-        await addNewSong(searchArr[0], serverQueue, null, interaction, false);
+        await addSong(searchArr[0], serverQueue, null, interaction, false);
         let newSong = serverQueue.songs[0];
         //if there's more than one song already in the queue just add the song else start playstream
         console.log('from more than one song in queue')
@@ -158,7 +149,7 @@ exports.joinTheChannel = async (voiceChannel, serverQueue, interaction) => {
         console.warn('ERROR:', err);
         return await interaction.reply(err);
     }
-}
+};
 
 exports.useWeather = async (interaction, serverQueue) => {
     const zip = interaction.options.getString('zipcode'),
@@ -168,59 +159,7 @@ exports.useWeather = async (interaction, serverQueue) => {
         .setTitle(`Current Temp: ${weatherData.actual_temp} °F\nFeels like: ${weatherData.feels_like} °F\nHumidity: ${weatherData.humidity}%\nUV index: ${weatherData.uv_ind}`)
         .setAuthor({name: `It's currently: ${weatherData.condition.type}`, iconURL: `https:${weatherData.condition.icon}`});
     interaction.reply({content:`Here's the current weather info for ${weatherData.location.place}, ${weatherData.location.state}`, embeds:[embed]})
-}
-const baseMessageEmbed = async (type, data) =>{
-    console.log(data)
-    let {title, url, thumbnail} = data,
-        embed = new MessageEmbed();
-
-    if(type === 'playlist'){
-        data.forEach((el, ind) => {
-            let {title, url, thumbnail} = el;
-            //handle song embed logic
-            ind === 0 ? embed.setColor('DARKER_GREY').setTitle(`Current Queue:`).setAuthor({name: `Now playing: ${title}`, iconURL: thumbnail.url}) :
-                        embed.addField(title, url);
-        })
-        return embed;
-
-    } else if (type === 'single'){
-        return embed.setColor('DARKER_GREY')
-            .setTitle(title)
-            .setURL(url)
-            .setImage(thumbnail.url)
-    }
 };
-
-exports.addSong = async (song, serverQueue, songs = null, interaction, hasAlreadyCalledYouTube) => {
-    //Currently this gets hit everytime we call youtube api... this doesnt need to happen.
-    if(!hasAlreadyCalledYouTube && typeof(song) === 'string' && song.includes('youtube.com/')){
-        //wait on the song results we get back from ytdl
-        const songInfo = await ytdl.getInfo(song);
-        // console.log(songInfo)
-        song = {
-            title: songInfo.videoDetails.title,
-            url: songInfo.videoDetails.video_url,
-            thumbnail: songInfo.thumbnail_url
-        };
-    }
-
-    //Handle weather or not these are playlist results
-    if(songs){
-        serverQueue.songs = serverQueue.songs.concat(songs);
-        interaction.editReply({content: 'I\'ll go ahead and get those added for ya.', embeds: [await baseMessageEmbed('playlist', serverQueue.songs)], ephemeral: true});
-    } else {
-        serverQueue.songs.push(song);
-        console.log('edit reply')
-        interaction.editReply({content: `Alright, I've added ${song.title} to the queue.`, embeds:[await baseMessageEmbed('single', song)], ephemeral: true});
-    }
-
-    //if this is the first song getting added to the playlist then start the stream
-    let newSong = serverQueue.songs[0];
-    if(serverQueue.songs.length === 1){
-        console.log('first song');
-        await stream.playStream(newSong.url, serverQueue);
-    }
-}
 
 exports.stop = async (interaction, serverQueue) => {
     //Precheck
@@ -243,11 +182,6 @@ exports.stop = async (interaction, serverQueue) => {
     }
 };
 exports.list = async (interaction, serverQueue) => {
-    let row = new MessageActionRow(),
-        selectEl = new MessageSelectMenu()
-        .setCustomId('list-select')
-        .setPlaceholder('Pick a song...');
-
     if(!serverQueue.songs.length){
         row.addComponents(
             new MessageButton()
@@ -257,21 +191,17 @@ exports.list = async (interaction, serverQueue) => {
         )
         return interaction.reply({content: 'Looks like there isn\'t anything in here...', components: [row]});
     } else {
-        let bArr = [];
-        serverQueue.songs.forEach((el, ind) => {
-            let bObj = {}
-            bObj.label = el.title; bObj.description = 'Click to play'; bObj.value = String(ind);
-            bArr.push(bObj);
+        let comp = selection(serverQueue, {customId: 'list-select', placeHolder: 'Pick a song...'});
+        return await interaction.reply({
+            content: `Here are the remaing track's in the list:`, 
+            components: [comp],
+            ephemeral: true,
+            fetchReply: true
         });
-
-        row.addComponents(
-            selectEl.addOptions(bArr)
-        );
-
-        return interaction.reply({content: `Here are the remaing track's in the list:`, components: [row], fetchReply: true});
     }
 }
 exports.skip = async (interaction, serverQueue) => {
+    console.log("FINALLY")
     //pre-checks
     const noNoConditionals = !serverQueue || 
         serverQueue.songs === [] || 
@@ -284,14 +214,18 @@ exports.skip = async (interaction, serverQueue) => {
     //send message and change stream to the next song in the queue.
     if(serverQueue.songs.length > 1){
         serverQueue.songs.shift();
-        console.log('not first song')
         stream.playStream(serverQueue.songs[0].url, serverQueue);
+        baseMessageEmbed(serverQueue.songs, 'playlist').then(res => {
+            console.log(res)
+        })
         return await interaction.reply({
             content: `I agree... that song is trash...\nHere are the remaing track's in the list:`, 
-            embeds: [await baseMessageEmbed(serverQueue.songs, 'playlist')],
+            embeds: [await baseMessageEmbed('playlist', serverQueue.songs)],
             ephemeral: true
         });
-    } else {
+    } else if(serverQueue.songs.length) {
        return await exports.stop(interaction, serverQueue);
+    } else {
+        interaction.reply('There\'s no music playing')
     }
 };

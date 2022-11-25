@@ -4,9 +4,9 @@ const ytdl = require('play-dl');
 exports.playStream = async (url, serverQueue, retry = 0) =>  {
     //Init values
     try {
-        const {connection} = serverQueue,
-          file = await ytdl.stream(url),
-          resource = await createAudioResource(file.stream, {
+        const {connection} = serverQueue;
+        let file = await ytdl.stream(url);
+        let resource = await createAudioResource(file.stream, {
               inputType: file.type
           }),
           player = createAudioPlayer({behaviors: {

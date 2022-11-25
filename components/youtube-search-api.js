@@ -37,6 +37,32 @@ const listRequest = async playlistInfo => {
     return details;
 };
 
+const mood = async mood => {
+    console.log(`searching for ${mood} music.`)
+    let reqParams = {
+        method: 'GET',
+        accept: '*/*',
+        url: `https://www.googleapis.com/youtube/v3/search`,
+        params: {
+            key: process.env.YOUTUBE_API_KEY,
+            part: 'id, snippet',
+            maxResults: '1',
+            type: 'playlist',
+            q: mood + ' music'
+        }
+    }
+    const videoId = await axios.request(reqParams).then( resp => {
+        let respon = listRequest({listId: resp.data.items[0].id.playlistId}).then(res => {
+            return res;
+        });
+        return respon;
+    }).catch(err => {
+        console.warn('------Error in response to song request-------', err);
+        return interaction.editReply({content: 'there was an issue with your YouTube request...\n I\'d sugest checking your quota', ephemoral: true})
+    });
+    return videoId;
+}
+
 
 const videoRequest = async searchStr => {
     let reqParams = {
@@ -65,3 +91,4 @@ const videoRequest = async searchStr => {
 
 exports.listRequest = listRequest;
 exports.videoRequest = videoRequest;
+exports.mood = mood;
