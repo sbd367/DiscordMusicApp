@@ -5,7 +5,7 @@ There's only a couple of modules in here currently, and most are pretty self exp
 
 ## runAction
 
-The back bone of these modules is the `runAction` method. 
+The back bone of these modules is the `play` method. 
 This method gets triggered everytime someone runs our play action... It does the follwing things:
 - ensures the proper permissions 
 - figures out what kind of search is being run (*Search, link, or playlist*)
