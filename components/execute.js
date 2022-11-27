@@ -4,9 +4,9 @@ const {joinVoiceChannel} = require('@discordjs/voice'),
       {noNeedToShowChat, 
         baseMessageEmbed, 
         selection, addSong} = require('./helpers'),
-      weatherService = require('./weather-api-service'),
+      weatherService = require('../service/weather-api-service'),
       ytdl = require('discord-ytdl-core'),
-      youtubeRequest = require('./youtube-search-api'),
+      youtubeRequest = require('../service/youtube-search-api'),
     { MessageActionRow, MessageButton, MessageEmbed, MessageSelectMenu } = require('discord.js');
       require('discord.js');
 
@@ -28,20 +28,17 @@ const buildList = url => {
 
 exports.playFromList = async (serverQueue, value) => {
     let {songs} = serverQueue;
-    console.log('play from list')
     await stream.playStream(songs[value].url, serverQueue);
     songs.splice(value, 1);
-    console.log('playstream');
 };
 
 
 exports.mood = async (interaction, serverQueue, voiceChannel) => {
-    console.log('runs');
     if(!serverQueue.songs.length || !serverQueue.connection){
         await this.joinTheChannel(voiceChannel, serverQueue, interaction)
     }
     let initialQueue = serverQueue.songs.length,
-        args = interaction.options.getString('mood') ? interaction.options.getString('mood') : '',
+        args = interaction.options.getString('mood'),
         newSongs = await youtubeRequest.mood(args);
     await addSong(args, serverQueue, newSongs, interaction, true);
     let newSong = serverQueue.songs[0];
@@ -52,19 +49,22 @@ exports.mood = async (interaction, serverQueue, voiceChannel) => {
 //NOTE: the interaction messages are to be defferred outside of this method besides initalization of the interaction reply
 //      followups should be handled in their respective modules, based off of its scoped state (serverQueue, interaction status).
 exports.play = async (interaction, serverQueue, voiceChannel) => {
-    console.log('----------plays song---------')
+    console.log('----------plays song---------\nServer Queue: ', serverQueue);
+
     //ensure permissions
     const permissions = voiceChannel.permissionsFor(interaction.client.user);
+
+    //check permissions
     if (!permissions.has("CONNECT") || !permissions.has("SPEAK")) {
         return await interaction.reply(
             "I need the permissions to join and speak in your voice channel!"
         );
-    }
-    //update the user that we're looking into it
-    
+    };
+
+    //join channel if we're not already
     if(!serverQueue.songs.length || !serverQueue.connection){
        await this.joinTheChannel(voiceChannel, serverQueue, interaction)
-    }
+    };
 
     // - Setup `arg` to see what kind of search this is: (regular/playlist link, keyword search)
     //if the link sent over is part of a playlist it will add the first 10 songs from that 
@@ -81,6 +81,7 @@ exports.play = async (interaction, serverQueue, voiceChannel) => {
         //add new songs to the queue
         await addSong(newSongData, serverQueue, null, interaction, true)
     //handle playlist logic
+    //TODO: make this use list helper
     } else if(playlist) {
         const row = new MessageActionRow()
             .addComponents(
@@ -102,6 +103,7 @@ exports.play = async (interaction, serverQueue, voiceChannel) => {
         'just respond "yes" to add the items... otherwise go kick sand.';
         
 
+        //Gross
         return interaction.reply({content: msg, embeds: [embed], components: [row], fetchReply: true}).then(async () => {
             await interaction.channel.awaitMessageComponent({ max: 1, time: 30000, errors: ['time'] }).then(async (option) => {
                 if(option.customId === 'noThanks'){
@@ -125,14 +127,14 @@ exports.play = async (interaction, serverQueue, voiceChannel) => {
             })
         }).catch(err => {
             console.warn('error from initial reply', err)
-        })
+        });
     } else if(searchArr[0].includes('youtube.com/')){
         await addSong(searchArr[0], serverQueue, null, interaction, false);
         let newSong = serverQueue.songs[0];
         //if there's more than one song already in the queue just add the song else start playstream
         console.log('from more than one song in queue')
         serverQueue.songs.length === 1 ? stream.playStream(newSong.url, serverQueue) : null;
-    }
+    };
 };
 
 exports.joinTheChannel = async (voiceChannel, serverQueue, interaction) => {
@@ -148,7 +150,7 @@ exports.joinTheChannel = async (voiceChannel, serverQueue, interaction) => {
         // Printing the error message if the bot fails to join the voicechat
         console.warn('ERROR:', err);
         return await interaction.reply(err);
-    }
+    };
 };
 
 exports.useWeather = async (interaction, serverQueue) => {
@@ -158,7 +160,7 @@ exports.useWeather = async (interaction, serverQueue) => {
         .setColor('DARKER_GREY')
         .setTitle(`Current Temp: ${weatherData.actual_temp} °F\nFeels like: ${weatherData.feels_like} °F\nHumidity: ${weatherData.humidity}%\nUV index: ${weatherData.uv_ind}`)
         .setAuthor({name: `It's currently: ${weatherData.condition.type}`, iconURL: `https:${weatherData.condition.icon}`});
-    interaction.reply({content:`Here's the current weather info for ${weatherData.location.place}, ${weatherData.location.state}`, embeds:[embed]})
+    interaction.reply({content:`Here's the current weather info for ${weatherData.location.place}, ${weatherData.location.state}`, embeds:[embed]});
 };
 
 exports.stop = async (interaction, serverQueue) => {
@@ -179,7 +181,7 @@ exports.stop = async (interaction, serverQueue) => {
     } else {
         serverQueue.songs = [];
         return closeConnection(interaction, serverQueue)
-    }
+    };
 };
 exports.list = async (interaction, serverQueue) => {
     if(!serverQueue.songs.length){
@@ -198,8 +200,8 @@ exports.list = async (interaction, serverQueue) => {
             ephemeral: true,
             fetchReply: true
         });
-    }
-}
+    };
+};
 exports.skip = async (interaction, serverQueue) => {
     console.log("FINALLY")
     //pre-checks
@@ -209,7 +211,7 @@ exports.skip = async (interaction, serverQueue) => {
 
     if (noNoConditionals){
         return await interaction.reply(noNeedToShowChat('Could not skip song... please ensure that:\n1. there are songs in the queue\n2. You are currently in a voice chat'));
-    }
+    };
     //if its not on the last song... 
     //send message and change stream to the next song in the queue.
     if(serverQueue.songs.length > 1){
@@ -227,5 +229,5 @@ exports.skip = async (interaction, serverQueue) => {
        return await exports.stop(interaction, serverQueue);
     } else {
         interaction.reply('There\'s no music playing')
-    }
+    };
 };
