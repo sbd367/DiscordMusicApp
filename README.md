@@ -31,5 +31,4 @@ This disord bot, when given a youtube link or search term, will join your voice 
 
 ## Notes
 If you wanna see more about how this thing works check out the attached [docs](https://github.com/sbd367/DiscordMusicApp/tree/master/docs)\
-This application was written with the latest version of Discord.js (v13), if you'd like to expand on the project be warry, as there are a lot of differences between v12 and v13. This took a lot longer than expected as documentation is slim...
 You can view the Docs for Discord.js [here](https://discord.js.org/#/docs/main/stable/general/welcome).
