@@ -3,7 +3,7 @@
 This is where the magic happens... this JS file contains multiple useful exports that are used by our `index.js` to respond to the users input. 
 There's only a couple of modules in here currently, and most are pretty self explanatory. 
 
-## runAction
+## play
 
 The back bone of these modules is the `play` method. 
 This method gets triggered everytime someone runs our play action... It does the follwing things:
