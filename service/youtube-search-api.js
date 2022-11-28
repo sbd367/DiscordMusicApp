@@ -2,20 +2,25 @@ require('dotenv').config();
 const axios = require('axios');
 
 const convert_id_to_url = id => `https://www.youtube.com/watch?v=${id}`;
+let reqPar = {
+    method: 'GET',
+    accept: '*/*',
+    params: {
+        key: process.env.YOUTUBE_API_KEY,
+        part: 'snippet'
+    }
+};
 
-const listRequest = async playlistInfo => {
-    const reqPar = {
-        method: 'GET',
-        accept: '*/*',
-        url: `https://www.googleapis.com/youtube/v3/playlistItems`,
-        params: {
-            key: process.env.YOUTUBE_API_KEY,
-            part: 'snippet',
-            playlistId: playlistInfo.listId,
+exports.listRequest = async playlistInfo => {
+    let {params} = reqPar,
+        newParams = {
+            ...params,
             maxResults: 10,
+            playlistId: playlistInfo.listId,
             snippet: true
-        }
-    };
+        };
+    reqPar.url = `https://www.googleapis.com/youtube/v3/playlistItems`;
+    reqPar.params = newParams;
 
     const data = await axios.request(reqPar).then(res => {
         let data = res.data;
@@ -37,21 +42,19 @@ const listRequest = async playlistInfo => {
     return details;
 };
 
-const mood = async mood => {
-    console.log(`searching for ${mood} music.`)
-    let reqParams = {
-        method: 'GET',
-        accept: '*/*',
-        url: `https://www.googleapis.com/youtube/v3/search`,
-        params: {
-            key: process.env.YOUTUBE_API_KEY,
-            part: 'id, snippet',
-            maxResults: '1',
+exports.mood = async mood => {
+    let {params} = reqPar,
+        newParams = {
+            ...params,
+            maxResults: 1,
             type: 'playlist',
+            part: 'id, snippet',
             q: mood + ' music'
-        }
-    }
-    const videoId = await axios.request(reqParams).then( resp => {
+        };
+    reqPar.url = `https://www.googleapis.com/youtube/v3/search`;
+    reqPar.params = newParams;
+    
+    const videoId = await axios.request(reqPar).then( resp => {
         let respon = listRequest({listId: resp.data.items[0].id.playlistId}).then(res => {
             return res;
         });
@@ -61,23 +64,21 @@ const mood = async mood => {
         return interaction.editReply({content: 'there was an issue with your YouTube request...\n I\'d sugest checking your quota', ephemoral: true})
     });
     return videoId;
-}
+};
 
 
-const videoRequest = async searchStr => {
-    let reqParams = {
-        method: 'GET',
-        accept: '*/*',
-        url: `https://www.googleapis.com/youtube/v3/search`,
-        params: {
-            key: process.env.YOUTUBE_API_KEY,
-            part: 'id, snippet',
-            maxResults: '1',
+exports.videoRequest = async searchStr => {
+    let {params} = reqPar,
+        newParams = {
+            ...params,
+            maxResults: 1,
             type: 'video',
             q: searchStr
-        }
-    }
-    const videoId = await axios.request(reqParams).then( resp => {
+        };
+    reqPar.url = `https://www.googleapis.com/youtube/v3/search`;
+    reqPar.params = newParams;
+    
+    const videoId = await axios.request(reqPar).then( resp => {
         let songData = resp.data.items[0],
             songId = songData.id.videoId,
             songUrl = convert_id_to_url(songId);
@@ -87,8 +88,4 @@ const videoRequest = async searchStr => {
         return interaction.editReply({content: 'there was an issue with your YouTube request...\n I\'d sugest checking your quota', ephemoral: true})
     });
     return videoId;
-}
-
-exports.listRequest = listRequest;
-exports.videoRequest = videoRequest;
-exports.mood = mood;
+};
