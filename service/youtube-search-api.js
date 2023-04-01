@@ -55,7 +55,7 @@ exports.mood = async mood => {
     reqPar.params = newParams;
     
     const videoId = await axios.request(reqPar).then( resp => {
-        let respon = listRequest({listId: resp.data.items[0].id.playlistId}).then(res => {
+        let respon = this.listRequest({listId: resp.data.items[0].id.playlistId}).then(res => {
             return res;
         });
         return respon;

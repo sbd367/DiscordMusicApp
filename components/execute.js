@@ -66,21 +66,19 @@ exports.play = async (interaction, serverQueue, voiceChannel) => {
        await this.joinTheChannel(voiceChannel, serverQueue, interaction)
     };
 
-    // - Setup `arg` to see what kind of search this is: (regular/playlist link, keyword search)
-    //if the link sent over is part of a playlist it will add the first 10 songs from that 
-    //playlist into the queue.
+    // - Setup `arg` to see what kind of search this is: (regular/playlist link, or keyword search)
     const arg = interaction.options.getString('search') ? interaction.options.getString('search') : '',
          playlist = arg.includes('list=') ? buildList(arg) : null,
          searchArr = arg.split(' ');
 
-    //run search and play song
+    //run keyword search and play song
     if(searchArr.length > 1 || !searchArr[0].includes('youtube.com/')){
         interaction.reply({content: 'Working on that for you...', ephemeral: true})
         const searchString = searchArr.join(' '),
             newSongData = await youtubeRequest.videoRequest(searchString);
         //add new songs to the queue
         await addSong(newSongData, serverQueue, null, interaction, true)
-    //handle playlist logic
+    //handle playlist link logic
     //TODO: make this use list helper
     } else if(playlist) {
         const row = new MessageActionRow()
@@ -103,12 +101,11 @@ exports.play = async (interaction, serverQueue, voiceChannel) => {
         'just respond "yes" to add the items... otherwise go kick sand.';
         
 
-        //Gross
+        //Gross - asks user they want just the one song or first 10 from the playlist
         return interaction.reply({content: msg, embeds: [embed], components: [row], fetchReply: true}).then(async () => {
             await interaction.channel.awaitMessageComponent({ max: 1, time: 30000, errors: ['time'] }).then(async (option) => {
                 if(option.customId === 'noThanks'){
                     await addSong(arg, serverQueue, null, interaction, false);
-                    console.log('from no thanks')
                     if(serverQueue.songs.length === 1) await stream.playStream(newSong.url, serverQueue);
                     option.update([])
                 } else if (option.customId.includes('youtube.com')){
@@ -129,6 +126,7 @@ exports.play = async (interaction, serverQueue, voiceChannel) => {
             console.warn('error from initial reply', err)
         });
     } else if(searchArr[0].includes('youtube.com/')){
+        //regular youtube link
         await addSong(searchArr[0], serverQueue, null, interaction, false);
         let newSong = serverQueue.songs[0];
         //if there's more than one song already in the queue just add the song else start playstream

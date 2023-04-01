@@ -2,6 +2,7 @@ const { createAudioPlayer, createAudioResource, NoSubscriberBehavior, StreamType
 const ytdl = require('play-dl');
 //Await on the opus stream and then play said resource
 exports.playStream = async (url, serverQueue, retry = 0) =>  {
+    let passed = false;
     //Init values
     try {
         const {connection} = serverQueue;
@@ -19,15 +20,15 @@ exports.playStream = async (url, serverQueue, retry = 0) =>  {
         //listeners
         player.on(AudioPlayerStatus.Buffering, () => {
             console.log('Buffering')
-        })
+        });
         player.on(AudioPlayerStatus.Paused, () => {
             console.log('paused');
-        })
+        });
         player.on(AudioPlayerStatus.Playing, () => console.log('playing audio'))
         player.on(AudioPlayerStatus.AutoPaused, () => {
             player.play(resource);
             console.log('Auto paused - bad response from ytdl');
-        })
+        });
         player.on('error', err => {
             console.log(err, 'ERROR: Discord player');
         });
@@ -41,6 +42,7 @@ exports.playStream = async (url, serverQueue, retry = 0) =>  {
             let newSong = serverQueue.songs[0]
             return serverQueue.songs.length ? this.playStream(newSong.url, serverQueue) : null;
         });
+        passed = true;
         return serverQueue;
     } catch (err) {
         if(err){
@@ -55,4 +57,5 @@ exports.playStream = async (url, serverQueue, retry = 0) =>  {
             throw new Error(err);
         };
     };
+    return passed;
 }
